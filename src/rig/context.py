@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.rig.nodes.nodes import Node
+from src.lib.nodes import Node
 
 
 class Context:

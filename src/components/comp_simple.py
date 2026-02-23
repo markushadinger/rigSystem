@@ -1,18 +1,17 @@
 from maya import cmds
 
-from src.lib.guides import guide
-from src.rig.module.deferred_plug import TYPE_MATRIX
+from src.lib import guide
+from src.rig.module.deferred_plug import TYPE_MATRIX, TYPE_FLOAT
 from src.rig.controls import color, control, shape
-from src.rig.nodes.nodes import Plug, Node
+from src.lib.nodes import Plug, Node
 from src.lib import attributes
 from src.lib import hierarchy
 from src.rig.data_manager import JsonDataManager
-from src.rig.module.module import Module
+from src.components._comp_base import Component
 
 
-class SimpleComponent(Module):
+class SimpleComponent(Component):
     INPUTS = {
-        "placer_ws": TYPE_MATRIX,
         "parent_ws": TYPE_MATRIX,
     }
 
@@ -20,6 +19,7 @@ class SimpleComponent(Module):
         "control_ws": TYPE_MATRIX,
         "control_ls": TYPE_MATRIX,
         "control_rs": TYPE_MATRIX,
+        "scale_factor": TYPE_FLOAT,
     }
 
     def __init__(self, name):
@@ -45,7 +45,9 @@ class SimpleComponent(Module):
     def build(self):
         ctrl = control.build(control.get_name(self.name))
         cmds.parent(ctrl, str(self.structure.controls))
-        cmds.xform(ctrl, worldSpace=True, matrix=self.guide_data.data[self.name])
+                
+        ctrl.inParentMatrix << self.inputs["parent_ws"].plug
+        ctrl.inOffsetMatrix.value = self.guide_data.data[self.name]
 
         attributes.lock_and_hide_attr(ctrl, attributes.VISIBILITY_ATTR)
         attributes.lock_and_hide_attr(ctrl, attributes.SCALE_ATTRS)
@@ -53,5 +55,6 @@ class SimpleComponent(Module):
         shape.set_shape(ctrl, shape.scale_shape(shape.CIRCLE, 30))
         color.set_color(ctrl, color.COLOR_YELLOW)
 
-        self.outputs["control_ws"].plug << Plug(Node(ctrl), "worldMatrix[0]")
-        self.outputs["control_ls"].plug << Plug(Node(ctrl), "matrix")
+        self.outputs["control_ws"].plug << control.get_normalized_matrix_output(ctrl)
+        self.outputs["control_ls"].plug << ctrl.matrix
+        self.outputs["scale_factor"].plug << ctrl.sy

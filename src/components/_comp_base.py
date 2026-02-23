@@ -5,7 +5,7 @@ from src.rig.context import Context
 from src.rig.module import structure
 
 
-class Module:
+class Component:
     def __init__(self, name):
         self.name = name
         self.context: Context | None = None

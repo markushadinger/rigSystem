@@ -1,4 +1,7 @@
 from maya import cmds
+from maya.api import OpenMaya
+
+from typing import Iterable
 
 
 class Plug(str):
@@ -17,11 +20,19 @@ class Plug(str):
         return self._node
 
     @property
-    def value(self) -> float:
+    def value(self) -> any:
         return cmds.getAttr(str(self))
 
     @value.setter
-    def value(self, v: float) -> None:
+    def value(self, v: any) -> None:
+        if isinstance(v, str):
+            cmds.setAttr(self, v, type="string")
+            return
+            
+        if is_matrix_value(v):
+            cmds.setAttr(self, *v, type="matrix")
+            return
+        
         cmds.setAttr(self, v)
 
     def __lshift__(self, other: "Plug"):
@@ -37,6 +48,9 @@ class Plug(str):
             return
 
         cmds.setAttr(self, **{key: value})
+        
+    def __getitem__(self, key):
+        return Plug(self.node, f"{self.name}[{key}]")
 
 
 class Node(str):
@@ -52,3 +66,14 @@ class Node(str):
 
     def __getattr__(self, item: str):
         return Plug(self, item)
+
+
+def is_matrix_value(value: any) -> bool:
+   
+    if isinstance(value, OpenMaya.MMatrix):
+        return True
+    
+    if isinstance(value, Iterable) and len(value) == 16 and all(isinstance(v, (int, float)) for v in value):
+        return True
+    
+    return False

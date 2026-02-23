@@ -39,6 +39,10 @@ def get_version_files(file_path: Path) -> list[Path]:
     :param file_path: File path
     :return: List of version file names
     """
+    
+    if not file_path.parent.exists():
+        return []
+    
     return [f for f in file_path.parent.iterdir() if is_version_file_of(file_path.name, f.name)]
 
 
@@ -69,5 +73,6 @@ def get_next_version_path(file_path: Path) -> Path:
     :param file_path: File path
     :return: Path for the next version
     """
-    next_version = get_versions(file_path)[-1] + 1
+    versions = get_versions(file_path)
+    next_version = versions[-1] + 1 if versions else 0
     return file_path.parent / construct_file_name(file_path.name, next_version)

@@ -1,15 +1,13 @@
 from maya import cmds
 
-from src.rig.context import Context
-from src.rig.nodes.nodes import Node
+from src.lib.nodes import Node
+from src.components._comp_base import Component
 
 
-class PrepSceneComponent:
+class PrepSceneComponent(Component):
     def __init__(self, name):
-        self.name = name
-        self.context: Context | None = None
+        super().__init__(name)     
 
-    def prepare(self):
+    def prepare(self):      
         cmds.file(new=True, force=True)
-
         self.context.rig_root_node = Node(cmds.createNode("transform", name=f"rig"))

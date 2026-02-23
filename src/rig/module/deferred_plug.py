@@ -1,6 +1,6 @@
 from maya import cmds
 
-from src.rig.nodes.nodes import Plug, Node
+from src.lib.nodes import Plug, Node
 
 TYPE_FLOAT = "float"
 TYPE_BOOL = "bool"

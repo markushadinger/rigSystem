@@ -4,7 +4,7 @@ from maya import cmds
 
 from src.rig.controls import color, control, shape
 from src.lib import attributes, tags
-from src.rig.module.module import Module
+from src.components._comp_base import Component
 from src.rig.module.deferred_plug import TYPE_MATRIX
 
 
@@ -14,7 +14,7 @@ class Outputs:
     scale_attr: str | None = None
 
 
-class PlacerComponent(Module):
+class PlacerComponent(Component):
     OUTPUTS = {
         "placer_ws": TYPE_MATRIX,
     }
@@ -33,5 +33,5 @@ class PlacerComponent(Module):
         shape.set_shape(ctrl, shape.scale_shape(shape.CIRCLE, 50))
         color.set_color(ctrl, color.COLOR_YELLOW)
 
-        # self.outputs["placer_ws"].plug << Plug(Node(ctrl), "worldMatrix[0]")
-        # print(self.outputs["placer_ws"].plug)
+        self.outputs["placer_ws"].plug << ctrl.worldMatrix[0]
+        print(self.outputs["placer_ws"].plug)

@@ -3,7 +3,7 @@ from typing import NamedTuple
 from maya import cmds
 
 from src.lib import attributes
-from src.rig.nodes.nodes import Node
+from src.lib.nodes import Node
 
 ModuleStructure = NamedTuple(
     "ModuleStructure", [

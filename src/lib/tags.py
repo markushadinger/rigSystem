@@ -81,4 +81,5 @@ def find_all_with_tag(tag: str) -> list[str]:
     :param tag:
     :return:
     """
-    return [node for node in cmds.ls(f"*.{TAG_ATTR}") if has_tag(node, tag)]
+    nodes_with_tag = [n.split(".")[0] for n in cmds.ls(f"*.{TAG_ATTR}")]
+    return [node for node in nodes_with_tag if has_tag(node, tag)]
