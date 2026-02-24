@@ -27,8 +27,7 @@ class DeferredPlug:
         self.attr_type = attr_type
         self.plug: Plug | None = None
 
-    def __lshift__(self, other):
-        # input << output
+    def connect(self, other: "DeferredPlug"):
         if self.direction != "input":
             raise ValueError("Can only assign to input plugs")
 
@@ -38,11 +37,11 @@ class DeferredPlug:
         self.connection = other
         return self
 
-    def build(self, node: Node):
+    def build_plug(self, node: Node):
         cmds.addAttr(str(node), longName=self.name, **mapping[self.attr_type])
         self.plug = Plug(node, self.name)
 
-    def connect(self):
+    def build_connection(self):
         self.plug << self.connection.plug
 
 
@@ -54,7 +53,7 @@ def build_deferred_plugs(plugs: list[DeferredPlug], node: Node):
     :return:
     """
     for plug in plugs:
-        plug.build(node)
+        plug.build_plug(node)
 
 
 def connect_deferred_plugs(plugs: list[DeferredPlug]):
@@ -65,4 +64,4 @@ def connect_deferred_plugs(plugs: list[DeferredPlug]):
     """
     for plug in plugs:
         if plug.connection:
-            plug.connect()
+            plug.build_connection()

@@ -69,7 +69,7 @@ class Plug(str):
 
         cmds.setAttr(self, **{key: value})
 
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> "Plug":
         return Plug(self.node, f"{self.name}[{key}]")
 
 

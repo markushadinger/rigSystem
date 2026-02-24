@@ -45,8 +45,8 @@ class SimpleComponent(Component):
     def build(self):
         ctrl = control.build(control.get_name(self.name))
         cmds.parent(ctrl, str(self.structure.controls))
-                
-        ctrl.inParentMatrix << self.inputs["parent_ws"].plug
+
+        ctrl.inParentMatrix.connect(self.inputs["parent_ws"].plug)
         ctrl.inOffsetMatrix.value = self.guide_data.data[self.name]
 
         attributes.lock_and_hide_attr(ctrl, attributes.VISIBILITY_ATTR)
@@ -55,6 +55,6 @@ class SimpleComponent(Component):
         shape.set_shape(ctrl, shape.scale_shape(shape.CIRCLE, 30))
         color.set_color(ctrl, color.COLOR_YELLOW)
 
-        self.outputs["control_ws"].plug << control.get_normalized_matrix_output(ctrl)
-        self.outputs["control_ls"].plug << ctrl.matrix
-        self.outputs["scale_factor"].plug << ctrl.sy
+        self.outputs["control_ws"].plug.connect(control.get_normalized_matrix_output(ctrl))
+        self.outputs["control_ls"].plug.connect(ctrl.matrix)
+        self.outputs["scale_factor"].plug.connect(ctrl.sy)

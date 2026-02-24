@@ -7,7 +7,7 @@ from src.lib import hierarchy
 from src.lib import naming
 from src.lib.nodes import Node
 
-from src.rig.snippets import fk, curve
+from src.rig.snippets import fk, curve, surface
 
 from maya import cmds
 from maya.api import OpenMaya
@@ -127,33 +127,55 @@ class HMSpineComponent(Component):
         Build the logic for the spine controls. The first hip control is the parent of the first spine control.
         """
 
-        # create point for the end of the hip to drive the curve.
-        hip_end_mtx = OpenMaya.MMatrix(self.guide_data.data[self.get_hip_indices()[-1]])
-        hip_last_ctrl_mtx = OpenMaya.MMatrix(self.fk_hip_controls[-1].worldMatrix[0].value)
-        hip_end_pnt = list(hip_end_mtx * hip_last_ctrl_mtx.inverse())[12:15]
+        # # create point for the end of the hip to drive the curve.
+        # hip_end_mtx = OpenMaya.MMatrix(self.guide_data.data[self.get_hip_indices()[-1]])
+        # hip_last_ctrl_mtx = OpenMaya.MMatrix(self.fk_hip_controls[-1].worldMatrix[0].value)
+        # hip_end_pnt = list(hip_end_mtx * hip_last_ctrl_mtx.inverse())[12:15]
 
-        hip_end_pnt_node = Node.create("multiplyPointByMatrix", name=f"{self.name}_hip_end_mlt")
-        hip_end_pnt_node.input.value = hip_end_pnt
-        hip_end_pnt_node.matrix.connect(self.fk_hip_controls[-1].worldMatrix[0])
+        # hip_end_pnt_node = Node.create("multiplyPointByMatrix", name=f"{self.name}_hip_end_mlt")
+        # hip_end_pnt_node.input.value = hip_end_pnt
+        # hip_end_pnt_node.matrix.connect(self.fk_hip_controls[-1].worldMatrix[0])
 
-        # create point for the end of the spine to drive the curve.
-        spine_end_mtx = OpenMaya.MMatrix(self.guide_data.data[self.get_spine_indices()[-1]])
-        spine_last_ctrl_mtx = OpenMaya.MMatrix(self.fk_spine_controls[-1].worldMatrix[0].value)
-        spine_end_pnt = list(spine_end_mtx * spine_last_ctrl_mtx.inverse())[12:15]
+        # # create point for the end of the spine to drive the curve.
+        # spine_end_mtx = OpenMaya.MMatrix(self.guide_data.data[self.get_spine_indices()[-1]])
+        # spine_last_ctrl_mtx = OpenMaya.MMatrix(self.fk_spine_controls[-1].worldMatrix[0].value)
+        # spine_end_pnt = list(spine_end_mtx * spine_last_ctrl_mtx.inverse())[12:15]
 
-        spine_end_pnt_node = Node.create("multiplyPointByMatrix", name=f"{self.name}_hip_end_mlt")
-        spine_end_pnt_node.input.value = spine_end_pnt
-        spine_end_pnt_node.matrix.connect(self.fk_spine_controls[-1].worldMatrix[0])
+        # spine_end_pnt_node = Node.create("multiplyPointByMatrix", name=f"{self.name}_hip_end_mlt")
+        # spine_end_pnt_node.input.value = spine_end_pnt
+        # spine_end_pnt_node.matrix.connect(self.fk_spine_controls[-1].worldMatrix[0])
 
-        transform_plugs = [hip_end_pnt_node.output]
+        # transform_plugs = [hip_end_pnt_node.output]
 
-        spine_plugs = [ctrl.worldMatrix[0] for ctrl in self.fk_spine_controls]
-        hip_plugs = [ctrl.worldMatrix[0] for ctrl in reversed(self.fk_hip_controls[1:])]
+        # spine_plugs = [ctrl.worldMatrix[0] for ctrl in self.fk_spine_controls]
+        # hip_plugs = [ctrl.worldMatrix[0] for ctrl in reversed(self.fk_hip_controls[1:])]
 
-        for plug in hip_plugs + spine_plugs:
-            trf_node = Node.create("translationFromMatrix", name=f"{self.name}_{plug.node}_tf")
-            trf_node.input.connect(plug)
-            transform_plugs.append(trf_node.output)
+        # for plug in hip_plugs + spine_plugs:
+        #     trf_node = Node.create("translationFromMatrix", name=f"{self.name}_{plug.node}_tf")
+        #     trf_node.input.connect(plug)
+        #     transform_plugs.append(trf_node.output)
 
-        transform_plugs.append(spine_end_pnt_node.output)
-        curve.build_matrix_driven_curve(f"{self.name}_spine_crv", transform_plugs)
+        # transform_plugs.append(spine_end_pnt_node.output)
+        # curve.build_matrix_driven_curve(f"{self.name}_spine_crv", transform_plugs)
+
+        end_spine_mtx = OpenMaya.MMatrix(self.guide_data.data[self.get_spine_indices()[-1]])
+        end_spine_ctrl_mtx = OpenMaya.MMatrix(self.fk_spine_controls[-1].worldMatrix[0].value)
+        end_spine_offset_mtx = end_spine_mtx * end_spine_ctrl_mtx.inverse()
+
+        end_spine_mtx_node = Node.create("multMatrix", name=f"{self.name}_end_mtx")
+        end_spine_mtx_node.matrixIn[0].value = end_spine_offset_mtx
+        end_spine_mtx_node.matrixIn[1].connect(self.fk_spine_controls[-1].worldMatrix[0])
+
+        end_hip_mtx = OpenMaya.MMatrix(self.guide_data.data[self.get_hip_indices()[-1]])
+        end_hip_ctrl_mtx = OpenMaya.MMatrix(self.fk_hip_controls[-1].worldMatrix[0].value)
+        end_hip_offset_mtx = end_hip_mtx * end_hip_ctrl_mtx.inverse()
+
+        end_hip_mtx_node = Node.create("multMatrix", name=f"{self.name}_end_mtx")
+        end_hip_mtx_node.matrixIn[0].value = end_hip_offset_mtx
+        end_hip_mtx_node.matrixIn[1].connect(self.fk_hip_controls[-1].worldMatrix[0])
+
+        fk_hip_ctrl_plugs = [ctrl.worldMatrix[0] for ctrl in reversed(self.fk_hip_controls)]
+        fk_spine_ctrl_plugs = [ctrl.worldMatrix[0] for ctrl in self.fk_spine_controls]
+
+        mtx_plugs = [end_hip_mtx_node.matrixSum] + fk_hip_ctrl_plugs[:-1] + fk_spine_ctrl_plugs + [end_spine_mtx_node.matrixSum]
+        surface.create_matrix_driven_surface(f"{self.name}_spine_surf", mtx_plugs)
