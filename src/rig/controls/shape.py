@@ -1,5 +1,7 @@
 from maya import cmds
 
+from src.lib.nodes import Node
+
 CIRCLE = [(0.0, 0.0, -1.0), (-0.383, 0.0, -0.924), (-0.707, 0.0, -0.707), (-0.924, 0.0, -0.383), (-1.0, -0.0, 0.0),
           (-0.924, -0.0, 0.383), (-0.707, -0.0, 0.707), (-0.383, -0.0, 0.924), (0.0, -0.0, 1.0), (0.383, -0.0, 0.924),
           (0.707, -0.0, 0.707), (0.924, -0.0, 0.383), (1.0, 0.0, -0.0), (0.924, 0.0, -0.383), (0.707, 0.0, -0.707),
@@ -14,6 +16,15 @@ def round_point(p: tuple[float, ...], precision: int = 3) -> tuple[float, ...]:
     :return: Rounded point
     """
     return tuple(round(x, precision) for x in p)
+
+
+def get_shape_node(node_name: Node) -> Node:
+    """
+    Get the shape node of a curve.
+    :param node_name: the name of the node
+    :return:
+    """
+    return Node(cmds.listRelatives(node_name, shapes=True)[0])
 
 
 def get_shape_from_scene(shape_name: str) -> list[tuple[float, ...]]:

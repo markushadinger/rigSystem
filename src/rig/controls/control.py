@@ -5,6 +5,7 @@ from src.lib import tags
 from src.lib.nodes import Node, Plug
 
 CONTROL_TAG = "control"
+SUFFIX = "ctrl"
 
 PARENT_MLT_INDEX = 10
 OFFSET_MLT_INDEX = 9
@@ -28,22 +29,24 @@ def add_shape(control: str, shape: str) -> None:
 def load_shape(control: str, shape_path: str) -> None:
     shape = cmds.file(shape_path, i=True, returnNewNodes=True)[0]
     add_shape(control, shape)
-    
-def build_offset_network(control: Node):    
+
+
+def build_offset_network(control: Node):
     cmds.addAttr(control, longName="inParentMatrix", attributeType="matrix")
     cmds.addAttr(control, longName="inOffsetMatrix", attributeType="matrix")
-    
+
     mlt = Node.create("multMatrix", name=f"{control}_hierarchy_mlt")
-    mlt.matrixIn[PARENT_MLT_INDEX] <<control.inParentMatrix
-    mlt.matrixIn[OFFSET_MLT_INDEX] <<control.inOffsetMatrix    
-    control.offsetParentMatrix << mlt.matrixSum
-    
-def get_normalized_matrix_output(control: Node) -> Plug:    
+    mlt.matrixIn[PARENT_MLT_INDEX].connect(control.inParentMatrix)
+    mlt.matrixIn[OFFSET_MLT_INDEX].connect(control.inOffsetMatrix)
+    control.offsetParentMatrix.connect(mlt.matrixSum)
+
+
+def get_normalized_matrix_output(control: Node) -> Plug:
     mlt = Node.create("multMatrix", name=f"{control}_normalized_mlt")
     mlt.matrixIn[0].value = control.worldInverseMatrix[0].value
-    mlt.matrixIn[1] << control.worldMatrix[0]
+    mlt.matrixIn[1].connect(control.worldMatrix[0])
     return mlt.matrixSum
-    
+
 
 def set_parent_control(child: Node, parent: Node) -> None:
     """
@@ -55,6 +58,6 @@ def set_parent_control(child: Node, parent: Node) -> None:
     child_matrix = OpenMaya.MMatrix(child.worldMatrix[0].value)
     parent_matrix = OpenMaya.MMatrix(parent.worldMatrix[0].value)
     offset_matrix = child_matrix * parent_matrix.inverse()
-    
-    child.inParentMatrix << parent.worldMatrix[0]
+
+    child.inParentMatrix.connect(parent.worldMatrix[0])
     child.inOffsetMatrix.value = offset_matrix

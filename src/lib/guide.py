@@ -1,9 +1,10 @@
 from maya import cmds
 
-from src.lib import tags
+from src.lib import naming, tags
 
 GUIDE_TAG = "guide"
 COMPONENT_ATTR = "component"
+GUIDE_SUFFIX = "guide"
 
 
 def get_name(node: str) -> str:
@@ -70,4 +71,4 @@ def get_guide_data_for_component(component: str) -> dict[str, any]:
     :return: Dictionary of guide data
     """
     guides = get_all_component_guides(component)
-    return {guide: get_guide_data(guide) for guide in guides}
+    return {naming.strip_suffix(guide): get_guide_data(guide) for guide in guides}

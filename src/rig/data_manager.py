@@ -14,7 +14,7 @@ class JsonDataManager:
 
     def load(self) -> None:
         if not self._file_path.parent.exists():
-            logging.warning(f"Guide data directory {self._file_path.parent} does not exist. Skipping load.")
+            logging.warning(f"Data directory {self._file_path.parent} does not exist. Skipping load.")
             return
         
         versioned_path = version.get_version_path(self._file_path, self._version)
@@ -22,12 +22,15 @@ class JsonDataManager:
 
     def save(self) -> None:
         
-        if self.data == {}:
+        if self._data == {}:
             logging.warning(f"No data to save for {self._file_path}. Skipping save.")
             return
             
         next_version_path = version.get_next_version_path(self._file_path)
         json.export_json(self._data, next_version_path)
+        
+    def set(self, data: dict) -> None:
+        self._data = data
 
     @property
     def data(self) -> dict:
