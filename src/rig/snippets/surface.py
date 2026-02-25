@@ -25,40 +25,62 @@ def get_k(degree: int, knot_count: int) -> list[int]:
     return k_start + k_mid + k_end
 
 
-def create_matrix_driven_surface(name: str, matrices: list[Plug], degree: int = 3) -> Node:
+class MatrixRibbonBuilder:
     """
-    Creates a surface driven by the given matrices.
-    :param name: The name of the surface.
-    :param matrices: A list of plugs that output matrices to drive the surface.
-    :param degree: The degree of the surface.
-    :return: The Node of the created surface.
+    Build a ribbon surface driven by a list of matrix plugs.
+    Each matrix plug will drive two control points on the surface,
+    one on the left and one on the right.
     """
 
-    driver_plugs = []
+    def __init__(self):
+        # settings
+        self.surface_name: str = "matrix_ribbon_surf"
+        self.degree: int = 3
 
-    for mtx in matrices:
-        trl = Node.create("translationFromMatrix", name=f"{name}_{mtx.node}_tf")
-        trl.input.connect(mtx)
+        # inputs
+        self.in_matrix_plugs: list[Plug] = []
 
-        axis = Node.create("axisFromMatrix", name=f"{name}_{mtx.node}_aim")
-        axis.input.connect(mtx)
+        # outputs
+        self.out_surface_shape: Node | None = None
+        self.out_surface_transform: Node | None = None
 
-        pos_left = Node.create("plusMinusAverage", "test")
-        pos_left.input3D[0].connect(trl.output)
-        pos_left.input3D[1].connect(axis.output)
-        pos_left.operation.value = 1
+    def build(self):
+        driver_plugs = []
+        for mtx in self.in_matrix_plugs:
+            trl = Node.create("translationFromMatrix", name=f"{self.surface_name}_{mtx.node}_tf")
+            trl.input.connect(mtx)
 
-        pos_right = Node.create("plusMinusAverage", "test")
-        pos_right.input3D[0].connect(trl.output)
-        pos_right.input3D[1].connect(axis.output)
-        pos_right.operation.value = 2
+            axis = Node.create("axisFromMatrix", name=f"{self.surface_name}_{mtx.node}_aim")
+            axis.input.connect(mtx)
 
-        driver_plugs.append((pos_left.output3D, pos_right.output3D))
+            pos_left = Node.create("plusMinusAverage", "test")
+            pos_left.input3D[0].connect(trl.output)
+            pos_left.input3D[1].connect(axis.output)
+            pos_left.operation.value = 1
 
-    ku = get_k(degree, len(matrices))
-    shape_node = cmds.surface(du=degree, dv=1, ku=ku, kv=(0, 1), p=generate_placeholder_knots(len(matrices), 2))
-    shape_node = Node(shape_node)
+            pos_right = Node.create("plusMinusAverage", "test")
+            pos_right.input3D[0].connect(trl.output)
+            pos_right.input3D[1].connect(axis.output)
+            pos_right.operation.value = 2
 
-    for i, (l_plug, r_plug) in enumerate(driver_plugs):
-        shape_node.controlPoints[i * 2].connect(l_plug)
-        shape_node.controlPoints[i * 2 + 1].connect(r_plug)
+            driver_plugs.append((pos_left.output3D, pos_right.output3D))
+
+        knot_count_u = len(self.in_matrix_plugs)
+        ku = get_k(self.degree, knot_count_u)
+        shape_node = cmds.surface(
+            name=self.surface_name,
+            du=self.degree,
+            dv=1,
+            ku=ku,
+            kv=(0, 1),
+            p=generate_placeholder_knots(knot_count_u, 2)
+        )
+
+        self.out_surface_shape = Node(shape_node)
+        self.out_surface_transform = Node(cmds.listRelatives(self.out_surface_shape, parent=True)[0])
+        shape_node = cmds.rename(self.out_surface_shape, f"{self.surface_name}Shape")
+        self.out_surface_shape = Node(shape_node)
+
+        for i, (l_plug, r_plug) in enumerate(driver_plugs):
+            self.out_surface_shape.controlPoints[i * 2].connect(l_plug)
+            self.out_surface_shape.controlPoints[i * 2 + 1].connect(r_plug)

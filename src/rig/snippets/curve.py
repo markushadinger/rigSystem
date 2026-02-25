@@ -4,19 +4,31 @@ from src.lib.nodes import Node, Plug
 from src.rig.controls import shape
 
 
-def build_matrix_driven_curve(name: str, matrix_plugs: [Plug], degree: int = 3) -> Node:
-    """
-    Build a curve driven by the given matrix plugs.
-    :param name: name of the curve
-    :param matrix_plugs: list of plugs to connect to the control points of the curve
-    :param degree: the degree of the curve, default is 3 (cubic)
-    :return:
-    """
+class MatrixDrivenCurveBuilder:
+    def __init__(self):
+        self.name: str = "curve"
+        self.degree: int = 3
 
-    curve_node = Node(cmds.curve(p=[(0, 0, 0)] * len(matrix_plugs), degree=degree, name=name))
-    shape_node = shape.get_shape_node(curve_node)
+        self.in_matrix_plugs: list[Plug] = []
+        self.our_transform_node: Node | None = None
+        self.out_shape_node: Node | None = None
 
-    for i, matrix_plug in enumerate(matrix_plugs):
-        shape_node.controlPoints[i].connect(matrix_plug)
+    def build(self):
 
-    return curve_node
+        trf_plugs = []
+
+        for mtx_plug in self.in_matrix_plugs:
+            trl = Node.create("translationFromMatrix", name=f"{self.name}_{mtx_plug.node}_tf")
+            trl.input.connect(mtx_plug)
+            trf_plugs.append(trl.output)
+
+        self.our_transform_node = Node(cmds.curve(
+            name=self.name,
+            degree=self.degree,
+            p=[(0, 0, 0)] * len(self.in_matrix_plugs)
+        ))
+
+        self.out_shape_node = shape.get_shape_node(self.our_transform_node)
+
+        for i, trf_plug in enumerate(trf_plugs):
+            self.out_shape_node.controlPoints[i].connect(trf_plug)

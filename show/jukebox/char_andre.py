@@ -6,7 +6,7 @@ from src.components.comp_importModel import ImportModelComponent
 from src import components
 from src.rig.context import Context
 
-STAGES_BUILD_FULL = ("prepare", "connect", "load_guide_data", "build_guides", "build", "cleanup")
+STAGES_BUILD_FULL = ("prepare", "connect", "build", "cleanup")
 STAGES_BUILD_GUIDE = ("prepare", "load_guide_data", "build_guides")
 
 builder = Builder("CharAndre")
@@ -22,12 +22,17 @@ placer = components.PlacerComponent("placer")
 builder.modules.append(placer)
 
 root = components.SimpleComponent(f"root")
-root.inputs["parent_ws"] << placer.outputs["placer_ws"]
+root.inputs["parent_ws"].connect(placer.outputs["placer_ws"])
 builder.modules.append(root)
 
 spine = components.HMSpineComponent(f"spine")
-spine.inputs["parent_ws"] << root.outputs["control_ws"]
+spine.inputs["parent_ws"].connect(root.outputs["control_ws"])
 builder.modules.append(spine)
+
+for side in "lr":
+    clavicle = components.SimpleComponent(f"clavicle_{side}")
+    clavicle.inputs["parent_ws"].connect(spine.outputs["joints_ws"], -1)
+    builder.modules.append(clavicle)
 
 
 def run(stages: tuple[str] = STAGES_BUILD_FULL):

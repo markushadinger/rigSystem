@@ -12,6 +12,7 @@ ModuleStructure = NamedTuple(
         ("input", Node),
         ("logic", Node),
         ("controls", Node),
+        ("deform", Node),
         ("output", Node)
     ])
 
@@ -29,6 +30,7 @@ def build_module_structure(module_name: str, parent: Node | None = None) -> Modu
         Node(cmds.createNode("transform", name=f"{module_name}_input", parent=f"{module_name}_module")),
         Node(cmds.createNode("transform", name=f"{module_name}_logic", parent=f"{module_name}_module")),
         Node(cmds.createNode("transform", name=f"{module_name}_controls", parent=f"{module_name}_module")),
+        Node(cmds.createNode("transform", name=f"{module_name}_deform", parent=f"{module_name}_module")),
         Node(cmds.createNode("transform", name=f"{module_name}_output", parent=f"{module_name}_module")),
     )
 

@@ -27,7 +27,7 @@ def get_shape_node(node_name: Node) -> Node:
     return Node(cmds.listRelatives(node_name, shapes=True)[0])
 
 
-def get_shape_from_scene(shape_name: str) -> list[tuple[float, ...]]:
+def get_points_from_scene(shape_name: Node) -> list[tuple[float, ...]]:
     """
     Get a shape from the scene.
     :param shape_name: Name of the shape
@@ -60,3 +60,23 @@ def set_shape(control: str, shape: list[tuple[float, ...]], degree: int = 1) -> 
     cmds.parent(shp, control, r=True, s=True)
     cmds.rename(shp, f"{control}Shape")
     cmds.delete(trf)
+
+
+def set_color(shape: Node, color: tuple[float, float, float]):
+    shape.overrideEnabled.value = 1
+    shape.overrideRGBColors.value = 1
+    shape.overrideColorRGB.value = color
+
+
+def get_shape_data_from_scene(shape_node: Node) -> dict:
+    """
+    Get shape data from the scene.
+    :param shape_node: the shape node to get data from
+    :return: Shape data
+    """
+
+    return {
+        "degree": shape_node.degree.value,
+        "points": get_points_from_scene(shape_node),
+        "color": shape_node.overrideColorRGB.value
+    }

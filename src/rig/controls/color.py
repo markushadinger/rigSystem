@@ -9,7 +9,4 @@ COLOR_PURPLE = (1, 0, 1)
 COLOR_ORANGE = (1, 0.5, 0)
 
 
-def set_color(shape: str, color: tuple[float, float, float]) -> None:
-    cmds.setAttr(f"{shape}.overrideEnabled", 1)
-    cmds.setAttr(f"{shape}.overrideRGBColors", 1)
-    cmds.setAttr(f"{shape}.overrideColorRGB", *color)
+

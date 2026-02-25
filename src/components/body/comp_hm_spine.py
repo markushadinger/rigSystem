@@ -1,13 +1,13 @@
 from src.components._comp_base import Component
 from src.rig.data_manager import JsonDataManager
-from src.rig.module.deferred_plug import TYPE_MATRIX
+from src.rig.module.deferred_plug import TYPE_MATRIX, TYPE_MATRIX_LIST
 from src.lib import guide
 from src.rig.controls import color, control, shape
 from src.lib import hierarchy
 from src.lib import naming
 from src.lib.nodes import Node
 
-from src.rig.snippets import fk, curve, surface
+from src.rig.snippets import fk, curve, surface, pins
 
 from maya import cmds
 from maya.api import OpenMaya
@@ -20,9 +20,9 @@ class HMSpineComponent(Component):
     }
 
     OUTPUTS = {
-        "control_ws": TYPE_MATRIX,
-        "control_ls": TYPE_MATRIX,
-        "control_rs": TYPE_MATRIX,
+        "spine_ctrls_ws": TYPE_MATRIX_LIST,
+        "hip_ctrls_ws": TYPE_MATRIX_LIST,
+        "joints_ws": TYPE_MATRIX_LIST,
     }
 
     def __init__(self, name):
@@ -31,12 +31,15 @@ class HMSpineComponent(Component):
         self.side = "m"
         self.control_count: int = 5
         self.joint_count: int = 10
+        self.aim_axis = "y"
+        self.up_axis = "z"
 
         self.guide_version: int = -1
         self.guide_data: JsonDataManager | None = None
 
         self.fk_spine_controls: list[Node] = []
         self.fk_hip_controls: list[Node] = []
+        self.joints: list[Node] = []
 
     def get_spine_indices(self) -> list[str]:
         """
@@ -55,6 +58,9 @@ class HMSpineComponent(Component):
     def prepare(self):
         super().prepare()
         self.guide_data = JsonDataManager(self.context.guide_file_path(self.name), self.guide_version)
+        self.outputs["spine_ctrls_ws"].length = self.control_count
+        self.outputs["hip_ctrls_ws"].length = 1
+        self.outputs["joints_ws"].length = self.joint_count
 
     def load_guide_data(self):
         self.guide_data.load()
@@ -107,6 +113,9 @@ class HMSpineComponent(Component):
             self.structure.controls
         )
 
+        for i, ctrl in enumerate(self.fk_spine_controls):
+            self.outputs["spine_ctrls_ws"].plug[i].connect(control.get_normalized_matrix_output(ctrl))
+
     def build_hip(self):
         """
         Build hip control. The hip control is the parent of the first spine control and is used to drive the entire spine.
@@ -122,41 +131,13 @@ class HMSpineComponent(Component):
             self.structure.controls
         )
 
+        for i, ctrl in enumerate(self.fk_hip_controls):
+            self.outputs["hip_ctrls_ws"].plug[i].connect(control.get_normalized_matrix_output(ctrl))
+
     def build_logic(self):
         """
         Build the logic for the spine controls. The first hip control is the parent of the first spine control.
         """
-
-        # # create point for the end of the hip to drive the curve.
-        # hip_end_mtx = OpenMaya.MMatrix(self.guide_data.data[self.get_hip_indices()[-1]])
-        # hip_last_ctrl_mtx = OpenMaya.MMatrix(self.fk_hip_controls[-1].worldMatrix[0].value)
-        # hip_end_pnt = list(hip_end_mtx * hip_last_ctrl_mtx.inverse())[12:15]
-
-        # hip_end_pnt_node = Node.create("multiplyPointByMatrix", name=f"{self.name}_hip_end_mlt")
-        # hip_end_pnt_node.input.value = hip_end_pnt
-        # hip_end_pnt_node.matrix.connect(self.fk_hip_controls[-1].worldMatrix[0])
-
-        # # create point for the end of the spine to drive the curve.
-        # spine_end_mtx = OpenMaya.MMatrix(self.guide_data.data[self.get_spine_indices()[-1]])
-        # spine_last_ctrl_mtx = OpenMaya.MMatrix(self.fk_spine_controls[-1].worldMatrix[0].value)
-        # spine_end_pnt = list(spine_end_mtx * spine_last_ctrl_mtx.inverse())[12:15]
-
-        # spine_end_pnt_node = Node.create("multiplyPointByMatrix", name=f"{self.name}_hip_end_mlt")
-        # spine_end_pnt_node.input.value = spine_end_pnt
-        # spine_end_pnt_node.matrix.connect(self.fk_spine_controls[-1].worldMatrix[0])
-
-        # transform_plugs = [hip_end_pnt_node.output]
-
-        # spine_plugs = [ctrl.worldMatrix[0] for ctrl in self.fk_spine_controls]
-        # hip_plugs = [ctrl.worldMatrix[0] for ctrl in reversed(self.fk_hip_controls[1:])]
-
-        # for plug in hip_plugs + spine_plugs:
-        #     trf_node = Node.create("translationFromMatrix", name=f"{self.name}_{plug.node}_tf")
-        #     trf_node.input.connect(plug)
-        #     transform_plugs.append(trf_node.output)
-
-        # transform_plugs.append(spine_end_pnt_node.output)
-        # curve.build_matrix_driven_curve(f"{self.name}_spine_crv", transform_plugs)
 
         end_spine_mtx = OpenMaya.MMatrix(self.guide_data.data[self.get_spine_indices()[-1]])
         end_spine_ctrl_mtx = OpenMaya.MMatrix(self.fk_spine_controls[-1].worldMatrix[0].value)
@@ -177,5 +158,53 @@ class HMSpineComponent(Component):
         fk_hip_ctrl_plugs = [ctrl.worldMatrix[0] for ctrl in reversed(self.fk_hip_controls)]
         fk_spine_ctrl_plugs = [ctrl.worldMatrix[0] for ctrl in self.fk_spine_controls]
 
-        mtx_plugs = [end_hip_mtx_node.matrixSum] + fk_hip_ctrl_plugs[:-1] + fk_spine_ctrl_plugs + [end_spine_mtx_node.matrixSum]
-        surface.create_matrix_driven_surface(f"{self.name}_spine_surf", mtx_plugs)
+        # build matrix plug list and drive surface with it
+        mtx_plugs = [end_hip_mtx_node.matrixSum]
+        mtx_plugs.extend(fk_hip_ctrl_plugs[:-1])
+        mtx_plugs.extend(fk_spine_ctrl_plugs)
+        mtx_plugs.extend([end_spine_mtx_node.matrixSum])
+
+        surface_builder = surface.MatrixRibbonBuilder()
+        surface_builder.surface_name = f"{self.name}_surf"
+        surface_builder.in_matrix_plugs = mtx_plugs
+        surface_builder.degree = 4
+        surface_builder.build()
+
+        cmds.parent(surface_builder.out_surface_transform, self.structure.logic)
+
+        # create joints and connect them to the surface with uv pins
+        u_mapping = [i / (self.joint_count - 1) for i in range(self.joint_count)]
+        for i in range(self.joint_count):
+            joint_name = naming.get_name(self.name, self.side, i, "jnt")
+            jnt = Node.create("joint", joint_name)
+            cmds.parent(jnt, self.structure.deform)
+            self.joints.append(jnt)
+
+        uv_pin_builder = pins.UvPinBuilder()
+        uv_pin_builder.pin_name = f"{self.name}_uv_pin"
+        uv_pin_builder.surface_shape = surface_builder.out_surface_shape
+        uv_pin_builder.build()
+
+        uv_pin_builder.out_pin.normalAxis.value = "xzy".index(self.aim_axis)
+        uv_pin_builder.out_pin.tangentAxis.value = "xzy".index(self.up_axis)
+
+        uv_driver = pins.UvPinTransformDriver()
+        uv_driver.pin = uv_pin_builder.out_pin
+        uv_driver.transforms = self.joints
+        uv_driver.uv_values = [(u, 0.5) for u in u_mapping]
+        uv_driver.connection_type = pins.ConnectionType.OFFSET_PARENT_MATRIX
+        uv_driver.build()
+
+        self.joints[-1].offsetParentMatrix.connect(end_spine_mtx_node.matrixSum)
+        self.joints[0].offsetParentMatrix.connect(end_hip_mtx_node.matrixSum)
+
+        curve_builder = curve.MatrixDrivenCurveBuilder()
+        curve_builder.name = f"{self.name}_curve"
+        curve_builder.in_matrix_plugs = [jnt.worldMatrix[0] for jnt in self.joints]
+        curve_builder.degree = 3
+        curve_builder.build()
+
+        cmds.parent(curve_builder.our_transform_node, self.structure.logic)
+
+        for i, jnt in enumerate(self.joints):
+            self.outputs["joints_ws"].plug[i].connect(control.get_normalized_matrix_output(jnt))

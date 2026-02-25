@@ -8,6 +8,7 @@ TYPE_MATRIX = "matrix"
 TYPE_VECTOR3 = "float3"
 TYPE_VECTOR2 = "float2"
 TYPE_STRING = "string"
+TYPE_MATRIX_LIST = "matrixList"
 
 mapping = {
     TYPE_FLOAT: {"at": "float"},
@@ -16,6 +17,8 @@ mapping = {
     TYPE_VECTOR3: {"at": "float3"},
     TYPE_VECTOR2: {"at": "float2"},
     TYPE_STRING: {"dt": "string"},
+
+    TYPE_MATRIX_LIST: {"dt": "matrix", "multi": True},
 }
 
 
@@ -26,8 +29,10 @@ class DeferredPlug:
         self.direction = direction  # "input" or "output"
         self.attr_type = attr_type
         self.plug: Plug | None = None
+        self.index: int | None = None
+        self.length: int | None = None
 
-    def connect(self, other: "DeferredPlug"):
+    def connect(self, other: "DeferredPlug", index: int | None = None) -> "DeferredPlug":
         if self.direction != "input":
             raise ValueError("Can only assign to input plugs")
 
@@ -35,6 +40,7 @@ class DeferredPlug:
             raise ValueError("Can only connect from output plugs")
 
         self.connection = other
+        self.index = index
         return self
 
     def build_plug(self, node: Node):
@@ -42,7 +48,12 @@ class DeferredPlug:
         self.plug = Plug(node, self.name)
 
     def build_connection(self):
-        self.plug << self.connection.plug
+        if self.index is not None:
+            index = range(self.connection.length)[self.index]
+            self.plug.connect(self.connection.plug[index])
+            return
+
+        self.plug.connect(self.connection.plug)
 
 
 def build_deferred_plugs(plugs: list[DeferredPlug], node: Node):
