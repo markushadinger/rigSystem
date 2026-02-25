@@ -15,10 +15,11 @@ def get_name(name: str, index: str | None = None, side: str | None = None) -> st
     return "_".join(filter(None, [name, index, side, "ctrl"]))
 
 
-def build(name: str) -> Node:
+def build(name: str, component_name: str) -> Node:
     control = Node.create("transform", name=name)
     tags.add_tag(control, CONTROL_TAG)
     build_offset_network(control)
+    tags.add_component_tag(control, component_name)
     return control
 
 
@@ -61,3 +62,12 @@ def set_parent_control(child: Node, parent: Node) -> None:
 
     child.inParentMatrix.connect(parent.worldMatrix[0])
     child.inOffsetMatrix.value = offset_matrix
+
+
+def get_all_component_controls(component: str) -> set[Node]:
+    """
+    Get all controls for a given component.
+    :param component: Component name
+    :return: Set of control names
+    """
+    return {Node(n) for n in tags.find_all_with_tag(CONTROL_TAG) if tags.get_component_tag(n) == component}

@@ -3,6 +3,7 @@ import json
 from maya import cmds
 
 TAG_ATTR = "tags"
+COMPONENT_ATTR = "component"
 
 
 def add_tag_attr(node: str) -> None:
@@ -83,3 +84,27 @@ def find_all_with_tag(tag: str) -> list[str]:
     """
     nodes_with_tag = [n.split(".")[0] for n in cmds.ls(f"*.{TAG_ATTR}")]
     return [node for node in nodes_with_tag if has_tag(node, tag)]
+
+
+def add_component_tag(node: str, component: str) -> None:
+    """
+    Add a module tag to a node.
+    :param node: Node to add module tag to
+    :param component: Component name
+    :return: None
+    """
+    cmds.addAttr(node, longName=COMPONENT_ATTR, dataType="string")
+    cmds.setAttr(f"{node}.{COMPONENT_ATTR}", component, type="string", lock=True)
+
+
+def get_component_tag(node: str) -> str:
+    """
+    Get a component tag from a node.
+    :param node: Node to get component tag from
+    :return: Component tag or None
+    """
+    if not cmds.objExists(f"{node}.{COMPONENT_ATTR}"):
+        print(f"Node {node}.{COMPONENT_ATTR} does not have a component tag.")
+        return ""
+
+    return cmds.getAttr(f"{node}.{COMPONENT_ATTR}")

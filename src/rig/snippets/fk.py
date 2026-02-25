@@ -8,10 +8,12 @@ def build_fk_controls(
         names: list[str],
         matrices: list,
         parent_mtx_plug: Plug,
-        parent_node: Node
+        parent_node: Node,
+        component_name: str,
 ) -> list[Node]:
     """
     Build FK controls.
+    :param component_name:
     :param names: names of the controls
     :param matrices: matrices of the controls
     :param parent_mtx_plug: input plug of the parent matrix to connect to the first control
@@ -23,9 +25,9 @@ def build_fk_controls(
     parent_ctrl: None | Node = None
 
     for name, matrix in zip(names, matrices):
-        ctrl = control.build(name)
+        ctrl = control.build(name, component_name)
         shape.set_shape(ctrl, shape.scale_shape(shape.CIRCLE, 20))
-        color.set_color(ctrl, color.COLOR_YELLOW)
+        shape.set_color(ctrl, shape.COLOR_YELLOW)
 
         cmds.parent(ctrl, parent_node)
         ctrl.inOffsetMatrix.value = matrix

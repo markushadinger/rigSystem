@@ -110,7 +110,8 @@ class HMSpineComponent(Component):
             fk_spine_ctrl_names,
             fk_spine_ctrl_mtxs,
             self.inputs["parent_ws"].plug,
-            self.structure.controls
+            self.structure.controls,
+            self.name
         )
 
         for i, ctrl in enumerate(self.fk_spine_controls):
@@ -128,7 +129,8 @@ class HMSpineComponent(Component):
             fk_hip_ctrl_names,
             fk_hip_ctrl_mtxs,
             self.inputs["parent_ws"].plug,
-            self.structure.controls
+            self.structure.controls,
+            self.name
         )
 
         for i, ctrl in enumerate(self.fk_hip_controls):

@@ -20,7 +20,7 @@ class PlacerComponent(Component):
     }
 
     def build(self):
-        ctrl = control.build(self.name)
+        ctrl = control.build(self.name, self.name)
         tags.add_tag(ctrl, "placer")
         cmds.parent(ctrl, self.structure.controls)
 
@@ -31,7 +31,7 @@ class PlacerComponent(Component):
 
         # Set shape and color
         shape.set_shape(ctrl, shape.scale_shape(shape.CIRCLE, 50))
-        color.set_color(ctrl, color.COLOR_YELLOW)
+        shape.set_color(ctrl, shape.COLOR_YELLOW)
 
         self.outputs["placer_ws"].plug.connect(ctrl.worldMatrix[0])
         print(self.outputs["placer_ws"].plug)

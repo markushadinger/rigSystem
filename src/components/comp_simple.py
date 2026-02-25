@@ -43,7 +43,7 @@ class SimpleComponent(Component):
         hierarchy.match_nodes_to_matrices({guide.get_name(self.name): m for n, m in self.guide_data.data.items()})
 
     def build(self):
-        ctrl = control.build(control.get_name(self.name))
+        ctrl = control.build(control.get_name(self.name), self.name)
         cmds.parent(ctrl, str(self.structure.controls))
 
         ctrl.inParentMatrix.connect(self.inputs["parent_ws"].plug)
@@ -53,7 +53,7 @@ class SimpleComponent(Component):
         attributes.lock_and_hide_attr(ctrl, attributes.SCALE_ATTRS)
 
         shape.set_shape(ctrl, shape.scale_shape(shape.CIRCLE, 30))
-        color.set_color(ctrl, color.COLOR_YELLOW)
+        shape.set_color(ctrl, shape.COLOR_YELLOW)
 
         self.outputs["control_ws"].plug.connect(control.get_normalized_matrix_output(ctrl))
         self.outputs["control_ls"].plug.connect(ctrl.matrix)

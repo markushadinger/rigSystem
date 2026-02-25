@@ -13,14 +13,17 @@ class Context:
     def asset_path(self) -> Path:
         return self.project_path / self.asset_type / self.name
 
-    def modules_path(self) -> Path:
-        return self.asset_path() / "modules"
-
-    def module_path(self, module_name: str) -> Path:
-        return self.modules_path() / module_name
+    def component_path(self, module_name: str) -> Path:
+        return self.asset_path() / "modules" / module_name
 
     def guide_path(self, module_name: str) -> Path:
-        return self.module_path(module_name) / "guides"
+        return self.component_path(module_name) / "guides"
 
     def guide_file_path(self, module_name: str) -> Path:
         return self.guide_path(module_name) / "guides.json"
+
+    def shapes_path(self, module_name: str) -> Path:
+        return self.component_path(module_name) / "shapes"
+
+    def shapes_file_path(self, module_name: str) -> Path:
+        return self.shapes_path(module_name) / "controls.json"

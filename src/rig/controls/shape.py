@@ -2,10 +2,20 @@ from maya import cmds
 
 from src.lib.nodes import Node
 
+COLOR_RED = (1, 0, 0)
+COLOR_GREEN = (0, 1, 0)
+COLOR_BLUE = (0, 0, 1)
+COLOR_YELLOW = (1, 1, 0)
+COLOR_WHITE = (1, 1, 1)
+COLOR_PURPLE = (1, 0, 1)
+COLOR_ORANGE = (1, 0.5, 0)
+
 CIRCLE = [(0.0, 0.0, -1.0), (-0.383, 0.0, -0.924), (-0.707, 0.0, -0.707), (-0.924, 0.0, -0.383), (-1.0, -0.0, 0.0),
           (-0.924, -0.0, 0.383), (-0.707, -0.0, 0.707), (-0.383, -0.0, 0.924), (0.0, -0.0, 1.0), (0.383, -0.0, 0.924),
           (0.707, -0.0, 0.707), (0.924, -0.0, 0.383), (1.0, 0.0, -0.0), (0.924, 0.0, -0.383), (0.707, 0.0, -0.707),
           (0.383, 0.0, -0.924), (-0.0, 0.0, -1.0)]
+
+
 
 
 def round_point(p: tuple[float, ...], precision: int = 3) -> tuple[float, ...]:
@@ -27,14 +37,13 @@ def get_shape_node(node_name: Node) -> Node:
     return Node(cmds.listRelatives(node_name, shapes=True)[0])
 
 
-def get_points_from_scene(shape_name: Node) -> list[tuple[float, ...]]:
+def get_points_from_scene(shape_node: Node) -> list[tuple[float, ...]]:
     """
     Get a shape from the scene.
-    :param shape_name: Name of the shape
+    :param shape_node: Node of the shape
     :return: Shape as a list of points
     """
-    shape = cmds.listRelatives(shape_name, shapes=True)[0]
-    return [round_point(p) for p in cmds.getAttr(f"{shape}.controlPoints[*]")]
+    return [round_point(p) for p in cmds.getAttr(f"{shape_node}.controlPoints[*]")]
 
 
 def scale_shape(shape: list[tuple[float, ...]], scale: float) -> list[tuple[float, ...]]:
@@ -62,10 +71,16 @@ def set_shape(control: str, shape: list[tuple[float, ...]], degree: int = 1) -> 
     cmds.delete(trf)
 
 
-def set_color(shape: Node, color: tuple[float, float, float]):
-    shape.overrideEnabled.value = 1
-    shape.overrideRGBColors.value = 1
-    shape.overrideColorRGB.value = color
+def set_color(shape_node: Node, color: tuple[float, float, float]):
+    """
+    Set the color of a shape.
+    :param shape_node: Shape to set color on
+    :param color: Color to set
+    :return: None
+    """
+    shape_node.overrideEnabled.value = 1
+    shape_node.overrideRGBColors.value = 1
+    shape_node.overrideColorRGB.value = color
 
 
 def get_shape_data_from_scene(shape_node: Node) -> dict:
