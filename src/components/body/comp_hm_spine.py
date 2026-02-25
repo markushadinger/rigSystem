@@ -2,7 +2,7 @@ from src.components._comp_base import Component
 from src.rig.data_manager import JsonDataManager
 from src.rig.module.deferred_plug import TYPE_MATRIX, TYPE_MATRIX_LIST
 from src.lib import guide
-from src.rig.controls import color, control, shape
+from src.rig.controls import control
 from src.lib import hierarchy
 from src.lib import naming
 from src.lib.nodes import Node

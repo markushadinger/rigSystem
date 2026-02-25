@@ -16,8 +16,6 @@ CIRCLE = [(0.0, 0.0, -1.0), (-0.383, 0.0, -0.924), (-0.707, 0.0, -0.707), (-0.92
           (0.383, 0.0, -0.924), (-0.0, 0.0, -1.0)]
 
 
-
-
 def round_point(p: tuple[float, ...], precision: int = 3) -> tuple[float, ...]:
     """
     Round a point to a given precision.
@@ -95,3 +93,17 @@ def get_shape_data_from_scene(shape_node: Node) -> dict:
         "points": get_points_from_scene(shape_node),
         "color": shape_node.overrideColorRGB.value
     }
+
+
+def create(points: list[tuple[float, ...]], degree: int = 1, color: tuple[int, ...] = COLOR_WHITE) -> Node:
+    """
+    Create a shape from a list of points.
+    :param color:
+    :param points: Points to create shape from
+    :param degree: Degree of the curve
+    :return: Shape node
+    """
+    trf = Node(cmds.curve(name="tmp", p=points, d=degree))
+    shp = Node(cmds.listRelatives(trf, shapes=True)[0])
+    cmds.rename(shp, f"shape{shp}")
+    return Node(shp)

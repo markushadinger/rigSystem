@@ -2,8 +2,7 @@ from maya import cmds
 
 from src.lib import guide
 from src.rig.module.deferred_plug import TYPE_MATRIX, TYPE_FLOAT
-from src.rig.controls import color, control, shape
-from src.lib.nodes import Plug, Node
+from src.rig.controls import control, shape
 from src.lib import attributes
 from src.lib import hierarchy
 from src.rig.data_manager import JsonDataManager

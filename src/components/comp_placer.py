@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from maya import cmds
 
-from src.rig.controls import color, control, shape
+from src.rig.controls import control, shape
 from src.lib import attributes, tags
 from src.components._comp_base import Component
 from src.rig.module.deferred_plug import TYPE_MATRIX
