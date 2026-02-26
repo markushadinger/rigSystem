@@ -15,6 +15,12 @@ CIRCLE = [(0.0, 0.0, -1.0), (-0.383, 0.0, -0.924), (-0.707, 0.0, -0.707), (-0.92
           (0.707, -0.0, 0.707), (0.924, -0.0, 0.383), (1.0, 0.0, -0.0), (0.924, 0.0, -0.383), (0.707, 0.0, -0.707),
           (0.383, 0.0, -0.924), (-0.0, 0.0, -1.0)]
 
+DEFAULT_SHAPE_DATA = {
+    "points": CIRCLE,
+    "degree": 1,
+    "color": COLOR_WHITE,
+}
+
 
 def round_point(p: tuple[float, ...], precision: int = 3) -> tuple[float, ...]:
     """
@@ -91,11 +97,11 @@ def get_shape_data_from_scene(shape_node: Node) -> dict:
     return {
         "degree": shape_node.degree.value,
         "points": get_points_from_scene(shape_node),
-        "color": shape_node.overrideColorRGB.value
+        "color": shape_node.overrideColorRGB.value[0]
     }
 
 
-def create(points: list[tuple[float, ...]], degree: int = 1, color: tuple[int, ...] = COLOR_WHITE) -> Node:
+def create(points: list[tuple[float, ...]], degree: int = 1, color: tuple[float, float, float] = COLOR_WHITE) -> Node:
     """
     Create a shape from a list of points.
     :param color:
@@ -105,5 +111,18 @@ def create(points: list[tuple[float, ...]], degree: int = 1, color: tuple[int, .
     """
     trf = Node(cmds.curve(name="tmp", p=points, d=degree))
     shp = Node(cmds.listRelatives(trf, shapes=True)[0])
-    cmds.rename(shp, f"shape{shp}")
-    return Node(shp)
+    set_color(shp, color)
+    return Node(trf)
+
+
+def assign_shape_to_transform(shape_node: Node, transform_node: Node) -> None:
+    """
+    Assign a shape to a transform.
+    :param shape_node: Shape to assign
+    :param transform_node: Transform to assign shape to
+    :return: None
+    """
+    shape = get_shape_node(shape_node)
+    cmds.parent(shape, transform_node, r=True, s=True)
+    cmds.rename(str(shape), f"{transform_node}Shape")
+    cmds.delete(shape_node)

@@ -1,43 +1,51 @@
 from maya import cmds
 
-from src.rig.controls import control, shape, color
+from src.rig.controls import control, shape
 from src.lib.nodes import Plug, Node
 
 
-def build_fk_controls(
-        names: list[str],
-        matrices: list,
-        parent_mtx_plug: Plug,
-        parent_node: Node,
-        component_name: str,
-) -> list[Node]:
-    """
-    Build FK controls.
-    :param component_name:
-    :param names: names of the controls
-    :param matrices: matrices of the controls
-    :param parent_mtx_plug: input plug of the parent matrix to connect to the first control
-    :param parent_node: parent node to parent the controls under
-    :return:
-    """
+class FkControlBuilder:
+    def __init__(self):
+        self.component_name = ""
+        self.names: list[str] = []
+        self.matrices: list = []
+        self.shape_data: list[dict] | None = None
+        self.parent_mtx_plug: Plug | None = None
 
-    nodes = []
-    parent_ctrl: None | Node = None
+        self.out_controls: list[Node] = []
 
-    for name, matrix in zip(names, matrices):
-        ctrl = control.build(name, component_name)
-        shape.set_shape(ctrl, shape.scale_shape(shape.CIRCLE, 20))
-        shape.set_color(ctrl, shape.COLOR_YELLOW)
+    def get_normalized_shape_data(self) -> list[dict]:
+        """
+        Get normalized shape data. This is to ensure that the shape data is in the correct format for the shape creation.
+        :param data: The shape data to normalize.
+        """
+        shape_data = [shape.DEFAULT_SHAPE_DATA] * len(self.names)
+        if self.shape_data:
+            for i, d in enumerate(self.shape_data):
+                if d:
+                    shape_data[i].update(d)
 
-        cmds.parent(ctrl, parent_node)
-        ctrl.inOffsetMatrix.value = matrix
+        return shape_data
 
-        if parent_ctrl:
-            control.set_parent_control(ctrl, parent_ctrl)
-        elif parent_mtx_plug:
-            ctrl.inParentMatrix.connect(parent_mtx_plug)
+    def build(self):
+        # prep data
+        shape_data = self.get_normalized_shape_data()
+        parent_ctrl: None | Node = None
 
-        parent_ctrl = ctrl
-        nodes.append(ctrl)
+        for name, matrix, shp in zip(self.names, self.matrices, shape_data):
 
-    return nodes
+            # create control and shape
+            ctrl_node = control.build(name, self.component_name)
+            shape_node = shape.create(**shp)
+            shape.assign_shape_to_transform(shape_node, ctrl_node)
+
+            ctrl_node.inOffsetMatrix.value = matrix
+
+            # connect to parent
+            if parent_ctrl:
+                control.set_parent_control(ctrl_node, parent_ctrl)
+            elif self.parent_mtx_plug:
+                ctrl_node.inParentMatrix.connect(self.parent_mtx_plug)
+
+            parent_ctrl = ctrl_node
+            self.out_controls.append(ctrl_node)

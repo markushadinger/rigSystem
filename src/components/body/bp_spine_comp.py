@@ -5,6 +5,7 @@ from src.lib import guide
 from src.rig.controls import control
 from src.lib import hierarchy
 from src.lib import naming
+from src.lib import joint
 from src.lib.nodes import Node
 
 from src.rig.snippets import fk, curve, surface, pins
@@ -36,6 +37,7 @@ class HMSpineComponent(Component):
 
         self.guide_version: int = -1
         self.guide_data: JsonDataManager | None = None
+        self.shape_data: JsonDataManager | None = None
 
         self.fk_spine_controls: list[Node] = []
         self.fk_hip_controls: list[Node] = []
@@ -57,34 +59,41 @@ class HMSpineComponent(Component):
 
     def prepare(self):
         super().prepare()
-        self.guide_data = JsonDataManager(self.context.guide_file_path(self.name), self.guide_version)
+
         self.outputs["spine_ctrls_ws"].length = self.control_count
         self.outputs["hip_ctrls_ws"].length = 1
         self.outputs["joints_ws"].length = self.joint_count
 
+        self.guide_data = JsonDataManager(self.context.guide_file_path(self.name), self.guide_version)
+        self.shape_data = JsonDataManager(self.context.shapes_file_path(self.name), -1)
+
     def load_guide_data(self):
-        self.guide_data.load()
+        self.guide_data.load_if_empty()
+
+    def load_build_data(self):
+        self.guide_data.load_if_empty()
+        self.shape_data.load_if_empty()
 
     def build_guides(self):
+        """
+        Build the guide joints for the spine and hips.
+        :return:
+        """
 
-        # Build spine joints
-        parent = self.structure.guides
-        for i in self.get_spine_indices():
-            joint_name = naming.get_name(i, suffix=guide.GUIDE_SUFFIX)
-            joint = guide.create_guide_joint(joint_name, self.name)
-            cmds.parent(joint, parent)
-            parent = joint
+        for indices in (
+                self.get_spine_indices(),
+                self.get_hip_indices()
+        ):
 
-        # Build hip joints
-        parent = self.structure.guides
-        for i in self.get_hip_indices():
-            joint_name = naming.get_name(i, suffix=guide.GUIDE_SUFFIX)
-            joint = guide.create_guide_joint(joint_name, self.name)
-            cmds.parent(joint, parent)
-            parent = joint
+            parent = self.structure.guides
+            for i in indices:
+                joint_name = naming.get_name(i, suffix=guide.SUFFIX)
+                joint_node = guide.create_guide_joint(joint_name, self.name)
+                cmds.parent(joint_node, parent)
+                parent = joint_node
 
         # assign guide data to joints
-        guide_data_dict = {guide.get_name(n): m for n, m in self.guide_data.data.items()}
+        guide_data_dict = {naming.get_name(n, suffix=guide.SUFFIX): m for n, m in self.guide_data.data.items()}
         hierarchy.match_nodes_to_matrices(guide_data_dict)
 
     def build(self):
@@ -94,44 +103,33 @@ class HMSpineComponent(Component):
         """
 
         self.build_fk()
-        self.build_hip()
         self.build_logic()
 
     def build_fk(self):
         """
-        Build FK controls for the spine. The number of controls is determined by self.control_count.
-        The controls are evenly distributed along the spine joints.
+        Build the FK controls for the spine and hips.
         """
 
-        spine_indices = self.get_spine_indices()
-        fk_spine_ctrl_names = [naming.get_name(i, control.SUFFIX) for i in spine_indices[:-1]]
-        fk_spine_ctrl_mtxs = [self.guide_data.data[i] for i in spine_indices[:-1]]
-        self.fk_spine_controls = fk.build_fk_controls(
-            fk_spine_ctrl_names,
-            fk_spine_ctrl_mtxs,
-            self.inputs["parent_ws"].plug,
-            self.structure.controls,
-            self.name
-        )
+        spine_indices = self.get_spine_indices()[:-1]
+        hip_indices = self.get_hip_indices()[:-1]
+
+        out_controls = []
+        for indices in (spine_indices, hip_indices):
+            fk_builder = fk.FkControlBuilder()
+            fk_builder.component_name = self.name
+            fk_builder.names = [naming.get_name(i, control.SUFFIX) for i in indices]
+            fk_builder.matrices = [self.guide_data.data[i] for i in indices]
+            fk_builder.shape_data = [self.shape_data.data.get(i, {}) for i in indices]
+            fk_builder.parent_mtx_plug = self.inputs["parent_ws"].plug
+            fk_builder.build()
+
+            out_controls.append(fk_builder.out_controls)
+            cmds.parent(*fk_builder.out_controls, self.structure.controls)
+
+        self.fk_spine_controls, self.fk_hip_controls = out_controls
 
         for i, ctrl in enumerate(self.fk_spine_controls):
             self.outputs["spine_ctrls_ws"].plug[i].connect(control.get_normalized_matrix_output(ctrl))
-
-    def build_hip(self):
-        """
-        Build hip control. The hip control is the parent of the first spine control and is used to drive the entire spine.
-        """
-
-        hip_indices = self.get_hip_indices()
-        fk_hip_ctrl_names = [naming.get_name(i, control.SUFFIX) for i in hip_indices[:-1]]
-        fk_hip_ctrl_mtxs = [self.guide_data.data[i] for i in hip_indices[:-1]]
-        self.fk_hip_controls = fk.build_fk_controls(
-            fk_hip_ctrl_names,
-            fk_hip_ctrl_mtxs,
-            self.inputs["parent_ws"].plug,
-            self.structure.controls,
-            self.name
-        )
 
         for i, ctrl in enumerate(self.fk_hip_controls):
             self.outputs["hip_ctrls_ws"].plug[i].connect(control.get_normalized_matrix_output(ctrl))
@@ -177,8 +175,8 @@ class HMSpineComponent(Component):
         # create joints and connect them to the surface with uv pins
         u_mapping = [i / (self.joint_count - 1) for i in range(self.joint_count)]
         for i in range(self.joint_count):
-            joint_name = naming.get_name(self.name, self.side, i, "jnt")
-            jnt = Node.create("joint", joint_name)
+            joint_name = naming.get_name(self.name, self.side, index=i, suffix=joint.SKIN_SUFFIX)
+            jnt = joint.create(joint_name, self.name)
             cmds.parent(jnt, self.structure.deform)
             self.joints.append(jnt)
 

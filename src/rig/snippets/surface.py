@@ -78,7 +78,7 @@ class MatrixRibbonBuilder:
 
         self.out_surface_shape = Node(shape_node)
         self.out_surface_transform = Node(cmds.listRelatives(self.out_surface_shape, parent=True)[0])
-        shape_node = cmds.rename(self.out_surface_shape, f"{self.surface_name}Shape")
+        shape_node = cmds.rename(str(self.out_surface_shape), f"{self.surface_name}Shape")
         self.out_surface_shape = Node(shape_node)
 
         for i, (l_plug, r_plug) in enumerate(driver_plugs):

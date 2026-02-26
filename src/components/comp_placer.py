@@ -34,4 +34,3 @@ class PlacerComponent(Component):
         shape.set_color(ctrl, shape.COLOR_YELLOW)
 
         self.outputs["placer_ws"].plug.connect(ctrl.worldMatrix[0])
-        print(self.outputs["placer_ws"].plug)

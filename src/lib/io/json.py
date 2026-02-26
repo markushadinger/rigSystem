@@ -3,6 +3,8 @@ import logging
 
 from pathlib import Path
 
+from src.lib.logger import logger
+
 
 def export_json(data: dict, path: Path) -> None:
     """
@@ -17,7 +19,7 @@ def export_json(data: dict, path: Path) -> None:
     with open(path.resolve(), "w") as f:
         json.dump(data, f, indent=4)
 
-    logging.info(f"Exported to {path.resolve()}")
+    logger.info(f"Exported to {path.resolve()}")
 
 
 def import_json(path: Path) -> dict:
@@ -30,5 +32,5 @@ def import_json(path: Path) -> dict:
     with open(path.resolve(), "r") as f:
         data = json.load(f)
 
-    logging.info(f"Imported from {path.resolve()}")
+    logger.info(f"Imported from {path.resolve()}")
     return data

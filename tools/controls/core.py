@@ -5,6 +5,8 @@ from src.rig.data_manager import JsonDataManager
 from src.rig.controls import control, shape
 from src.architecture.builder import Builder
 
+from src.lib import naming
+
 from pathlib import Path
 
 
@@ -17,7 +19,7 @@ def export_component_controls(component: str, export_path: Path) -> None:
     """
     transforms = control.get_all_component_controls(component)
     shapes = [shape.get_shape_node(ctrl) for ctrl in transforms]
-    data = {ctrl: shape.get_shape_data_from_scene(ctrl) for ctrl in shapes}
+    data = {naming.strip_suffix(ctrl): shape.get_shape_data_from_scene(ctrl) for ctrl in shapes}
 
     manager = JsonDataManager(export_path)
     manager.set(data)

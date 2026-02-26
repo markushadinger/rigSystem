@@ -3,7 +3,7 @@ from maya import cmds
 from src.lib import naming, tags
 
 GUIDE_TAG = "guide"
-GUIDE_SUFFIX = "guide"
+SUFFIX = "guide"
 
 
 def get_name(node: str) -> str:
