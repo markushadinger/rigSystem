@@ -22,11 +22,12 @@ class MatrixDrivenCurveBuilder:
             trl.input.connect(mtx_plug)
             trf_plugs.append(trl.output)
 
-        self.our_transform_node = Node(cmds.curve(
+        self.our_transform_node = Node.generate(
+            cmds.curve,
             name=self.name,
             degree=self.degree,
             p=[(0, 0, 0)] * len(self.in_matrix_plugs)
-        ))
+        )
 
         self.out_shape_node = shape.get_shape_node(self.our_transform_node)
 

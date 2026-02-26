@@ -67,7 +67,8 @@ class MatrixRibbonBuilder:
 
         knot_count_u = len(self.in_matrix_plugs)
         ku = get_k(self.degree, knot_count_u)
-        shape_node = cmds.surface(
+        self.out_surface_shape = Node.generate(
+            cmds.surface,
             name=self.surface_name,
             du=self.degree,
             dv=1,
@@ -76,7 +77,6 @@ class MatrixRibbonBuilder:
             p=generate_placeholder_knots(knot_count_u, 2)
         )
 
-        self.out_surface_shape = Node(shape_node)
         self.out_surface_transform = Node(cmds.listRelatives(self.out_surface_shape, parent=True)[0])
         shape_node = cmds.rename(str(self.out_surface_shape), f"{self.surface_name}Shape")
         self.out_surface_shape = Node(shape_node)

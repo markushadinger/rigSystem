@@ -109,7 +109,7 @@ def create(points: list[tuple[float, ...]], degree: int = 1, color: tuple[float,
     :param degree: Degree of the curve
     :return: Shape node
     """
-    trf = Node(cmds.curve(name="tmp", p=points, d=degree))
+    trf = Node.generate(cmds.curve, name="tmp", p=points, d=degree)
     shp = Node(cmds.listRelatives(trf, shapes=True)[0])
     set_color(shp, color)
     return Node(trf)

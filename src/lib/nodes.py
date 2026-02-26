@@ -1,7 +1,7 @@
 from maya import cmds
 from maya.api import OpenMaya
 
-from typing import Iterable
+from typing import Iterable, Callable
 
 
 class Plug(str):
@@ -85,6 +85,19 @@ class Node(str):
         :return: The created node as a Node instance
         """
         return cls(cmds.createNode(node_type, name=name, **kwargs))
+
+    @classmethod
+    def generate(cls, generator: Callable, name: str, **kwargs) -> "Node":
+        """
+        Generate a node using the given generator function and name.
+        The generator function should take a name and return the name of the created node.
+        :param generator: A function that generates a node and returns its name
+        :param name: Name to pass to the generator function
+        :param kwargs: Additional keyword arguments to pass to the generator function
+        :return: The generated node as a Node instance
+        """
+        kwargs["name"] = name
+        return cls(generator(**kwargs))
 
     def __new__(cls, node: str):
         obj = super().__new__(cls, node)
