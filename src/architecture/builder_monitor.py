@@ -1,9 +1,7 @@
 import time
-
-from src.architecture.builder import Builder
-
 import logging
 
+from src.architecture.builder import Builder
 from src.lib.logger import logger
 
 

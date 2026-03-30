@@ -2,7 +2,9 @@ from maya import cmds
 from maya.api import OpenMaya
 
 from src.lib import tags
+from src.lib import naming
 from src.lib.nodes import Node, Plug
+from src.rig.controls import shape
 
 CONTROL_TAG = "control"
 SUFFIX = "ctrl"
@@ -11,25 +13,20 @@ PARENT_MLT_INDEX = 10
 OFFSET_MLT_INDEX = 9
 
 
-def get_name(name: str, index: str | None = None, side: str | None = None) -> str:
-    return "_".join(filter(None, [name, index, side, "ctrl"]))
-
-
-def build(name: str, component_name: str) -> Node:
-    control = Node.create("transform", name=name)
+def build(name: naming.Name) -> Node:
+    control = Node.create("transform", name=str(name.replace(suffix=SUFFIX)))
     tags.add_tag(control, CONTROL_TAG)
-    build_offset_network(control)
-    tags.add_component_tag(control, component_name)
+    tags.add_component_tag(control, name.component_name)
     return control
 
 
-def add_shape(control: str, shape: str) -> None:
-    cmds.parent(shape, control)
+def add_shape(control: Node, shape_node: Node):
+    shape.assign_shape_to_transform(control, shape_node)
 
 
-def load_shape(control: str, shape_path: str) -> None:
-    shape = cmds.file(shape_path, i=True, returnNewNodes=True)[0]
-    add_shape(control, shape)
+def add_shape_from_dict(control: Node, shape_data: dict):
+    shape_node = shape.create(**shape_data)
+    shape.assign_shape_to_transform(shape_node, control)
 
 
 def build_offset_network(control: Node):

@@ -1,10 +1,8 @@
+from enum import Enum
+
 from maya import cmds
-from maya.api import OpenMaya
 
 from src.lib.nodes import Node, Plug
-from src.lib import surface
-
-from enum import Enum
 
 
 class ConnectionType(Enum):

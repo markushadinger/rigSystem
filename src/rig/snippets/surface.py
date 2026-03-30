@@ -1,6 +1,6 @@
 from maya import cmds
+
 from src.lib.nodes import Node, Plug
-from src.rig.controls import shape
 
 
 def generate_placeholder_knots(u_count: int, v_count: int) -> list:

@@ -1,3 +1,34 @@
+from dataclasses import dataclass, replace
+
+
+@dataclass
+class Name:
+    component: str | None = None
+    side: str | None = None
+    index: int | None = None
+    extra: str | None = None
+    suffix: str | None = None
+
+    def __str__(self) -> str:
+        return get_name(
+            component=self.component,
+            side=self.side,
+            index=self.index,
+            extra=self.extra,
+            suffix=self.suffix
+        )
+
+    @property
+    def component_name(self) -> str:
+        return get_name(
+            component=self.component,
+            side=self.side
+        )
+
+    def replace(self, **kwargs) -> "Name":
+        return replace(self, **kwargs)
+
+
 def get_name(component: str, side: str = None, index: int = None, extra: str = None, suffix: str = None) -> str:
     """
     Get the name of the component. The name is used to identify the component and is used in the guide data.

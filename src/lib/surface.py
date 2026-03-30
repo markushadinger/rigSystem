@@ -1,7 +1,6 @@
-from src.lib import om
-from src.lib.nodes import Node
-
 from maya.api import OpenMaya
+
+from src.lib.nodes import Node
 
 
 def get_uv_from_point(surface: Node, point: OpenMaya.MPoint) -> tuple[float, float]:

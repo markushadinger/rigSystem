@@ -3,11 +3,12 @@ from src.rig.module.deferred_plug import build_deferred_plugs
 from src.rig.module.deferred_plug import connect_deferred_plugs
 from src.rig.context import Context
 from src.rig.module import structure
+from src.lib.naming import Name
 
 
 class Component:
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, name: str, side: str | None):
+        self.name: Name = Name(component=name, side=side)
         self.context: Context | None = None
         self.structure: structure.ModuleStructure | None = None
         self.inputs: dict[str, DeferredPlug] = {}

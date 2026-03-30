@@ -59,20 +59,20 @@ class Builder:
             with ThreadPoolExecutor() as executor:
                 future_to_module = {}
                 for module in modules:
-                    self.signal_module_started.emit(stage, module.name)
+                    self.signal_module_started.emit(stage, str(module.name))
                     future = executor.submit(getattr(module, stage))
                     future_to_module[future] = module
 
                 for future in as_completed(future_to_module):
                     module = future_to_module[future]
                     future.result()  # ensures the stage finished
-                    self.signal_module_ended.emit(stage, module.name)
+                    self.signal_module_ended.emit(stage, str(module.name))
         else:
             # Sequential execution
             for module in modules:
-                self.signal_module_started.emit(stage, module.name)
+                self.signal_module_started.emit(stage, str(module.name))
                 getattr(module, stage)()
-                self.signal_module_ended.emit(stage, module.name)
+                self.signal_module_ended.emit(stage, str(module.name))
 
         self.signal_stage_ended.emit(stage)
 

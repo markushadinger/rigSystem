@@ -1,17 +1,17 @@
 from pathlib import Path
+import logging
 
 from src.lib.io import version
 from src.lib.io import json
 
-import logging
 
+class JsonDataManager():
 
-class JsonDataManager:
-
-    def __init__(self, file_path: Path, ver: int = -1):
+    def __init__(self, file_path: Path, ver: int = -1, default=None):
         self._file_path = file_path
         self._data: dict = {}
         self._version = ver
+        self._default = default
 
     def load(self) -> None:
         if not self._file_path.parent.exists():
@@ -36,6 +36,9 @@ class JsonDataManager:
     def load_if_empty(self) -> None:
         if not self._data:
             self.load()
+
+    def get(self, index, default=None):
+        return self._data.get(str(index), default if default is not None else self._default)
 
     @property
     def data(self) -> dict:

@@ -2,7 +2,7 @@ from typing import NamedTuple
 
 from maya import cmds
 
-from src.lib import attributes
+from src.lib import attributes, naming
 from src.lib.nodes import Node
 
 ModuleStructure = NamedTuple(
@@ -17,21 +17,23 @@ ModuleStructure = NamedTuple(
     ])
 
 
-def build_module_structure(module_name: str, parent: Node | None = None) -> ModuleStructure:
+def build_module_structure(name: naming.Name, parent: Node | None = None) -> ModuleStructure:
     """
     Build module structure.
-    :param module_name: Module name
+    :param name: Module name
     :param parent: Parent node
     :return: None
     """
+
+    name = str(name)
     struct = ModuleStructure(
-        Node(cmds.createNode("transform", name=f"{module_name}_module")),
-        Node(cmds.createNode("transform", name=f"{module_name}_guides", parent=f"{module_name}_module")),
-        Node(cmds.createNode("transform", name=f"{module_name}_input", parent=f"{module_name}_module")),
-        Node(cmds.createNode("transform", name=f"{module_name}_logic", parent=f"{module_name}_module")),
-        Node(cmds.createNode("transform", name=f"{module_name}_controls", parent=f"{module_name}_module")),
-        Node(cmds.createNode("transform", name=f"{module_name}_deform", parent=f"{module_name}_module")),
-        Node(cmds.createNode("transform", name=f"{module_name}_output", parent=f"{module_name}_module")),
+        Node.create("transform", name=name),
+        Node.create("transform", name=f"{name}_guides", parent=name),
+        Node.create("transform", name=f"{name}_input", parent=name),
+        Node.create("transform", name=f"{name}_logic", parent=name),
+        Node.create("transform", name=f"{name}_controls", parent=name),
+        Node.create("transform", name=f"{name}_deform", parent=name),
+        Node.create("transform", name=f"{name}_output", parent=name),
     )
 
     for group in struct:
@@ -43,4 +45,3 @@ def build_module_structure(module_name: str, parent: Node | None = None) -> Modu
         cmds.parent(str(struct.module), str(parent))
 
     return struct
-

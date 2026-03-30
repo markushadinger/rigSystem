@@ -1,7 +1,7 @@
+from typing import Iterable, Callable
+
 from maya import cmds
 from maya.api import OpenMaya
-
-from typing import Iterable, Callable
 
 
 class Plug(str):

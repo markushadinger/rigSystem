@@ -21,21 +21,23 @@ import_model.path = r"P:\AndreJukeBox\assets\character\andre\model\andre_model.m
 placer = components.PlacerComponent("placer")
 builder.modules.append(placer)
 
-root = components.SimpleComponent(f"root")
+root = components.SimpleComponent("root", "m")
 root.inputs["parent_ws"].connect(placer.outputs["placer_ws"])
 builder.modules.append(root)
 
-spine = components.HMSpineComponent(f"spine")
+spine = components.HMSpineComponent("spine", "m")
 spine.inputs["parent_ws"].connect(root.outputs["control_ws"])
+
 builder.modules.append(spine)
 
 for side in "lr":
-    clavicle = components.SimpleComponent(f"clavicle_{side}")
+    clavicle = components.SimpleComponent("clavicle", side)
     clavicle.inputs["parent_ws"].connect(spine.outputs["joints_ws"], -1)
     builder.modules.append(clavicle)
 
-    arm = components.BpLimb(f"arm_{side}")
+    arm = components.BpLimb("arm", side)
     arm.inputs["parent_ws"].connect(clavicle.outputs["control_ws"])
+    arm.pole_vector_distance = 20
     builder.modules.append(arm)
 
 

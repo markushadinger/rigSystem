@@ -5,6 +5,13 @@ from src.lib import naming, tags
 GUIDE_TAG = "guide"
 SUFFIX = "guide"
 
+DEFAULT_VALUE = [
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 1
+]
+
 
 def get_name(node: str) -> str:
     return f"{node}_guide"
@@ -19,16 +26,16 @@ def get_all_component_guides(component: str) -> set[str]:
     return {n for n in tags.find_all_with_tag(GUIDE_TAG) if tags.get_component_tag(n) == component}
 
 
-def create_guide_joint(name: str, component: str) -> str:
+def create_guide_joint(name: str | naming.Name) -> str:
     """
     Create a guide joint.
     :param name: Name of the joint
     :param component: Component name
     :return: Name of the joint
     """
-    jnt = cmds.createNode("joint", name=name)
+    jnt = cmds.createNode("joint", name=str(name.replace(suffix=SUFFIX)))
     tags.add_tag(jnt, GUIDE_TAG)
-    tags.add_component_tag(jnt, component)
+    tags.add_component_tag(jnt, name.component_name)
     return jnt
 
 

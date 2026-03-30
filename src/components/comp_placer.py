@@ -19,8 +19,11 @@ class PlacerComponent(Component):
         "placer_ws": TYPE_MATRIX,
     }
 
+    def __init__(self, name: str):
+        super().__init__(name, None)
+
     def build(self):
-        ctrl = control.build(self.name, self.name)
+        ctrl = control.build(self.name)
         tags.add_tag(ctrl, "placer")
         cmds.parent(ctrl, self.structure.controls)
 

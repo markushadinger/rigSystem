@@ -1,16 +1,18 @@
 from maya import cmds
 
 from src.rig.controls import control, shape
+from src.rig.stack import Stack
 from src.lib.nodes import Plug, Node
+from src.lib.naming import Name
 
 
-class FkControlBuilder:
+class Chain:
     def __init__(self):
-        self.component_name = ""
-        self.names: list[str] = []
+        self.names: list[Name] = []
         self.matrices: list = []
         self.shape_data: list[dict] | None = None
         self.parent_mtx_plug: Plug | None = None
+        self.parent_node: Node | None = None
 
         self.out_controls: list[Node] = []
 
@@ -30,22 +32,20 @@ class FkControlBuilder:
     def build(self):
         # prep data
         shape_data = self.get_normalized_shape_data()
-        parent_ctrl: None | Node = None
+        parent_plug = self.parent_mtx_plug
 
         for name, matrix, shp in zip(self.names, self.matrices, shape_data):
-
             # create control and shape
-            ctrl_node = control.build(name, self.component_name)
+            ctrl_node = control.build(name)
             shape_node = shape.create(**shp)
             shape.assign_shape_to_transform(shape_node, ctrl_node)
 
-            ctrl_node.inOffsetMatrix.value = matrix
+            stack = Stack(ctrl_node)
+            zero = stack.insert(0, "zero")
 
-            # connect to parent
-            if parent_ctrl:
-                control.set_parent_control(ctrl_node, parent_ctrl)
-            elif self.parent_mtx_plug:
-                ctrl_node.inParentMatrix.connect(self.parent_mtx_plug)
+            zero.offsetParentMatrix.connect(parent_plug)
+            cmds.xform(zero, worldSpace=True, matrix=matrix)
+            cmds.parent(zero, self.parent_node)
 
-            parent_ctrl = ctrl_node
+            parent_plug = ctrl_node.worldMatrix[0]
             self.out_controls.append(ctrl_node)
