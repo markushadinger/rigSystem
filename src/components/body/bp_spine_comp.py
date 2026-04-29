@@ -3,7 +3,7 @@ from maya.api import OpenMaya
 
 from src.components._comp_base import Component
 from src.rig.data_manager import JsonDataManager
-from src.rig.module.deferred_plug import TYPE_MATRIX, TYPE_MATRIX_LIST
+from src.rig.module.deferred_plug import MATRIX, MATRIX_LIST
 from src.lib import guide
 from src.rig.controls import control, shape
 from src.lib import naming
@@ -12,21 +12,20 @@ from src.lib.nodes import Node
 from src.rig.snippets import fk, curve, surface, pins
 
 
-
 class HMSpineComponent(Component):
     INPUTS = {
-        "placer_ws": TYPE_MATRIX,
-        "parent_ws": TYPE_MATRIX,
+        "placer_ws": MATRIX,
+        "parent_ws": MATRIX,
     }
 
     OUTPUTS = {
-        "spine_ctrls_ws": TYPE_MATRIX_LIST,
-        "hip_ctrls_ws": TYPE_MATRIX_LIST,
-        "joints_ws": TYPE_MATRIX_LIST,
+        "spine_ctrls_ws": MATRIX_LIST,
+        "hip_ctrls_ws": MATRIX_LIST,
+        "joints_ws": MATRIX_LIST,
     }
 
-    def __init__(self, name: str, side: str):
-        super().__init__(name, side)
+    def __init__(self, name):
+        super().__init__(name)
 
         self.control_count: int = 5
         self.joint_count: int = 10
@@ -98,7 +97,7 @@ class HMSpineComponent(Component):
                 joint_node = guide.create_guide_joint(i)
                 cmds.parent(joint_node, parent)
 
-                cmds.xform(joint_node, worldSpace=True, matrix=self.guide_data.data.get(i, list(OpenMaya.MMatrix())))
+                cmds.xform(joint_node, worldSpace=True, matrix=self.guide_data.get(i))
                 parent = joint_node
 
     def build(self):

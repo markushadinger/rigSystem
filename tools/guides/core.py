@@ -11,7 +11,8 @@ def export_guides_for_component(component_name: str, context: Context):
     guide_data = guide.get_guide_data_for_component(component_name)
     guide_data_manager.set(guide_data)
     guide_data_manager.save()
-    
-def export_guides_for_asset(builder:Builder):
+
+
+def export_guides_for_asset(builder: Builder):
     for module in builder.modules:
-        export_guides_for_component(module.name, builder.context)
+        export_guides_for_component(module.name.component_name, builder.context)

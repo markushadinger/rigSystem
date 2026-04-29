@@ -1,8 +1,6 @@
 from maya import cmds
-from maya.api import OpenMaya
 
-from src.components._comp_base import Component
-from src.rig.data_manager import JsonDataManager
+from src.components._comp_base import MacroComponent
 from src.rig.module.deferred_plug import MATRIX, MATRIX_LIST
 from src.lib import guide
 from src.rig.controls import control, shape
@@ -14,7 +12,7 @@ from src.rig.stack import Stack, ZERO
 from src.rig.snippets import fk, ik
 
 
-class BpLimb(Component):
+class BipedLeg(MacroComponent):
     INPUTS = {
         "placer_ws": MATRIX,
         "parent_ws": MATRIX,
@@ -28,56 +26,22 @@ class BpLimb(Component):
 
     def __init__(self, name: str, side: str):
         super().__init__(name, side)
+        self.INDICES = ["leg", "knee", "ankle", "ball", "toe"]
 
         self.aim_axis: str = "x"
         self.up_axis: str = "z"
         self.pole_vector_distance: float = 10
 
-        self.guide_version: int = -1
-        self.guide_data: JsonDataManager | None = None
-        self.shape_data: JsonDataManager | None = None
-
         self.ik_ctrl: Node | None = None
         self.pole_ctrl: Node | None = None
         self.fk_ctrls: list[Node] = []
+        self.ik_joints: list[Node] = []
         self.joints: list[Node] = []
-
-        self._indices = None
-
-    @property
-    def indices(self) -> list[naming.Name]:
-        """
-        Get the indices of the spine joints. The spine joints are named in the format {name}_{side}_{index}_guide.
-        :return: A list of spine joint indices.
-        """
-        if self._indices is None:
-            self._indices = [self.name.replace(index=i) for i in range(3)]
-        return self._indices
 
     def prepare(self):
         super().prepare()
-
-        self.outputs["fk_ctrls_ws"].length = 3
-        self.outputs["joints_ws"].length = 3
-
-        self.guide_data = JsonDataManager(
-            file_path=self.context.guide_file_path(self.name.component_name),
-            ver=self.guide_version,
-            default=guide.DEFAULT_VALUE
-        )
-
-        self.shape_data = JsonDataManager(
-            file_path=self.context.shapes_file_path(self.name.component_name),
-            ver=-1,
-            default=shape.DEFAULT_SHAPE_DATA
-        )
-
-    def load_guide_data(self):
-        self.guide_data.load_if_empty()
-
-    def load_build_data(self):
-        self.shape_data.load_if_empty()
-        self.guide_data.load_if_empty()
+        self.outputs["fk_ctrls_ws"].length = 5
+        self.outputs["joints_ws"].length = 5
 
     def build_guides(self):
 
@@ -101,19 +65,19 @@ class BpLimb(Component):
 
         self.build_fk()
         self.build_ik()
-        self.build_logic()
+        self.build_foot_roll()
+        self.build_blend()
 
     def build_fk(self):
         """
         Build the FK controls for the spine and hips.
         """
 
-        guide_data = [self.guide_data.get(i) for i in self.indices]
         shape_data = [self.shape_data.get(i, {}) for i in self.indices]
 
         fk_builder = fk.Chain()
         fk_builder.names = [i.replace(extra="fk") for i in self.indices]
-        fk_builder.matrices = guide_data
+        fk_builder.matrices = self.guide_matrices
         fk_builder.shape_data = shape_data
         fk_builder.parent_mtx_plug = self.inputs["parent_ws"].plug
         fk_builder.parent_node = self.structure.controls
@@ -132,58 +96,86 @@ class BpLimb(Component):
             "color": shape.SIDE_COLOR.get(self.name.side, "m")
         }
 
-        start_mtx = OpenMaya.MMatrix(self.guide_data.get(self.indices[0]))
-        mid_mtx = OpenMaya.MMatrix(self.guide_data.get(self.indices[1]))
-        end_mtx = OpenMaya.MMatrix(self.guide_data.get(self.indices[2]))
-
         # ik ctrl
         ik_name = self.name.replace(extra="ik")
         ik_shape = self.shape_data.get(ik_name, default_shape)
 
-        ik_ctrl = control.build(ik_name)
-        control.add_shape_from_dict(ik_ctrl, ik_shape)
+        self.ik_ctrl = control.build(ik_name)
+        control.add_shape_from_dict(self.ik_ctrl, ik_shape)
 
-        ik_stack = Stack(ik_ctrl)
+        ik_stack = Stack(self.ik_ctrl)
         ik_zero = ik_stack.add(ZERO)
         ik_zero.offsetParentMatrix.connect(self.inputs["placer_ws"].plug)
-        cmds.xform(ik_zero, worldSpace=True, matrix=end_mtx)
+        cmds.xform(ik_zero, worldSpace=True, matrix=self.guide_matrices[2])
         cmds.parent(ik_zero, self.structure.controls)
 
         # pole ctrl
         pole_name = self.name.replace(extra="pole")
         pole_shape = self.shape_data.get(pole_name, default_shape)
-        pole_ctrl = control.build(pole_name)
-        control.add_shape_from_dict(pole_ctrl, pole_shape)
+        self.pole_ctrl = control.build(pole_name)
+        control.add_shape_from_dict(self.pole_ctrl, pole_shape)
 
-        pole_stack = Stack(pole_ctrl)
+        pole_stack = Stack(self.pole_ctrl)
         pole_zero = pole_stack.add(ZERO)
         pole_zero.offsetParentMatrix.connect(self.inputs["placer_ws"].plug)
-        cmds.xform(pole_zero, worldSpace=True, matrix=mid_mtx)
+        cmds.xform(pole_zero, worldSpace=True, matrix=self.guide_matrices[1])
         cmds.parent(pole_zero, self.structure.controls)
 
-        pole_mtx = ik.get_pole_vector_matrix(start_mtx, mid_mtx, end_mtx, self.pole_vector_distance)
+        pole_mtx = ik.get_pole_vector_matrix(*self.guide_matrices[:3], self.pole_vector_distance)
         cmds.xform(pole_zero, worldSpace=True, matrix=pole_mtx)
 
-        ik_joints = joint.create_chain(
-            matrices=[start_mtx, mid_mtx, end_mtx],
+        self.ik_joints = joint.create_chain(
+            matrices=self.guide_matrices,
             name=self.name.replace(extra="ik", suffix="jnt"),
             skin_joint=False
         )
-        cmds.parent(ik_joints[0], self.structure.logic)
-        ik_joints[0].offsetParentMatrix.connect(self.inputs["parent_ws"].plug)
+        cmds.parent(self.ik_joints[0], self.structure.logic)
+        self.ik_joints[0].offsetParentMatrix.connect(self.inputs["parent_ws"].plug)
 
         ik_handle, pole_constraint = ik.build_pole_ik(
             name=self.name.replace(extra="ik"),
-            chain=ik_joints,
-            driver_plug=ik_ctrl.worldMatrix[0],
-            pole_plug=pole_ctrl.worldMatrix[0]
+            chain=self.ik_joints[:3],
+            driver_plug=self.ik_ctrl.worldMatrix[0],
+            pole_plug=self.pole_ctrl.worldMatrix[0]
         )
         cmds.parent(ik_handle, self.structure.logic)
         cmds.parent(pole_constraint, self.structure.logic)
 
-    def build_logic(self):
-        """
-        Build the logic for the spine controls. The first hip control is the parent of the first spine control.
-        """
+    def build_blend(self):
 
-        pass
+        matrix_plug_dict = {}
+
+        for key, node_list in {"fk": self.fk_ctrls, "ik": self.ik_joints}.items():
+            local_matrix_plugs = []
+            parent: None | Node = None
+
+            for i, node in enumerate(node_list):
+                if parent is None:
+                    local_matrix_plugs.append(node.worldMatrix[0])
+
+                else:
+                    mmlt = Node.create("multMatrix", self.name.replace(index=i, extra=key, suffix="mmlt"))
+                    mmlt.matrixIn[0].connect(node.worldMatrix[0])
+                    mmlt.matrixIn[1].connect(parent.worldInverseMatrix[0])
+                    local_matrix_plugs.append(mmlt.matrixSum)
+
+                parent = node
+
+            matrix_plug_dict[key] = local_matrix_plugs
+
+        self.joints = joint.create_chain(
+            matrices=[guide.DEFAULT_VALUE for i in self.indices],
+            name=self.name.replace(suffix="jnt"),
+            skin_joint=True
+        )
+        cmds.parent(self.joints[0], self.structure.deform)
+
+        for i, (fk_plug, ik_plug, jnt) in enumerate(zip(matrix_plug_dict["fk"], matrix_plug_dict["ik"], self.joints)):
+            blend = Node.create("blendMatrix", self.name.replace(index=i, suffix="blend"))
+            blend.inputMatrix.connect(fk_plug)
+            blend.target[0].targetMatrix.connect(ik_plug)
+            jnt.offsetParentMatrix.connect(blend.outputMatrix)
+
+    def build_foot_roll(self):
+        self.ik_ctrl.add_attr("roll", at="float", k=True)
+        self.ik_ctrl.add_attr("bank", at="float", k=True)

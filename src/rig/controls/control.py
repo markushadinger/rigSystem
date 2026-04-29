@@ -17,6 +17,7 @@ def build(name: naming.Name) -> Node:
     control = Node.create("transform", name=str(name.replace(suffix=SUFFIX)))
     tags.add_tag(control, CONTROL_TAG)
     tags.add_component_tag(control, name.component_name)
+    cmds.controller(control)
     return control
 
 

@@ -1,6 +1,7 @@
 from maya import cmds
 
 from src.lib import naming, tags
+from src.lib.nodes import Node
 
 GUIDE_TAG = "guide"
 SUFFIX = "guide"
@@ -33,13 +34,13 @@ def create_guide_joint(name: str | naming.Name) -> str:
     :param component: Component name
     :return: Name of the joint
     """
-    jnt = cmds.createNode("joint", name=str(name.replace(suffix=SUFFIX)))
+    jnt = Node.create("joint", name=name.replace(suffix=SUFFIX))
     tags.add_tag(jnt, GUIDE_TAG)
     tags.add_component_tag(jnt, name.component_name)
     return jnt
 
 
-def get_guide_data(node: str) -> list[float]:
+def get_guide_data(node: str | Node) -> list[float]:
     """
     Get guide data for a given node.
     :param node: Node to get guide data for
@@ -56,3 +57,21 @@ def get_guide_data_for_component(component: str) -> dict[str, any]:
     """
     guides = get_all_component_guides(component)
     return {naming.strip_suffix(guide): get_guide_data(guide) for guide in guides}
+
+
+def get_guide_node(name: naming.Name):
+    """
+    Returns a guide node based on the name
+    :param name:
+    :return:
+    """
+    return Node(str(name.replace(suffix=GUIDE_TAG, extra=None)))
+
+
+def get_world_matrix(name: naming.Name) -> list[float]:
+    """
+    Return the worldMatrix of a node
+    :param name:
+    :return:
+    """
+    return get_guide_node(name).worldMatrix[0].value

@@ -1,4 +1,3 @@
-from maya.api import OpenMaya
 from maya.api.OpenMaya import MPoint, MVector
 
 

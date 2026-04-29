@@ -1,7 +1,7 @@
 from maya import cmds
 
 from src.lib import guide
-from src.rig.module.deferred_plug import TYPE_MATRIX
+from src.rig.module.deferred_plug import MATRIX, DeferredPlug
 from src.rig.controls import control, shape
 from src.rig.stack import Stack
 from src.lib import attributes
@@ -13,16 +13,16 @@ from src.components._comp_base import Component
 
 class SimpleComponent(Component):
     INPUTS = {
-        "parent_ws": TYPE_MATRIX,
+        "parent_ws": DeferredPlug("parent_ws", "input", MATRIX),
     }
 
     OUTPUTS = {
-        "control_ws": TYPE_MATRIX,
-        "joint_ws": TYPE_MATRIX,
+        "control_ws": DeferredPlug("control_ws", "output", MATRIX),
+        "joint_ws": DeferredPlug("joint_ws", "output", MATRIX),
     }
 
-    def __init__(self, name: str, side: str | None):
-        super().__init__(name, side)
+    def __init__(self, name):
+        super().__init__(name)
 
         self.guide_version = -1
         self.guide_data: JsonDataManager | None = None

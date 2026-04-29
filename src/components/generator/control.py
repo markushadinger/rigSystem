@@ -1,0 +1,69 @@
+from maya import cmds
+
+from src.components._comp_base import MacroComponent
+from src.lib.naming import Name
+from src.lib.nodes import Node
+from src.rig.stack import Stack, ZERO
+from src.rig.controls import control
+from src.rig.module.deferred_plug import DeferredPlug, MATRIX
+from src.lib import guide
+from src.components.offset_systems import OffsetSystem
+
+
+class ControlGenerator(MacroComponent):
+    in_parent_mtx = DeferredPlug("in_parent_mtx", "input", MATRIX)
+    out_local_mtx = DeferredPlug("out_local_mtx", "output", MATRIX)
+    out_struct_mtx = DeferredPlug("out_struct_mtx", "output", MATRIX)
+    out_world_mtx = DeferredPlug("out_world_mtx", "output", MATRIX)
+
+    def __init__(self, name: Name):
+        super().__init__(name)
+
+        self.index: str | None = None
+        self.control: Node | None = None
+        self.stack: Stack | None = None
+        self._control_deferred_plugs: list[DeferredPlug] = []
+        self._offset_system: OffsetSystem | None = None
+
+    def add_attr(self, name: str, settings: dict) -> DeferredPlug:
+        plug = DeferredPlug(name, "output", settings)
+        self._control_deferred_plugs.append(plug)
+        return plug
+
+    def set_offset_system(self, system: OffsetSystem):
+        self._offset_system = system
+
+    def prepare(self):
+        super().prepare()
+
+        for plug in self._control_deferred_plugs:
+            plug.build_plug(self.structure.output)
+
+    def build(self):
+        shape_data = self.shape_data.get(self.name.replace(index=self.index))
+        matrix_data = guide.get_world_matrix(self.name.replace(index=self.index))
+
+        self.control = control.build(self.name)
+        control.add_shape_from_dict(self.control, shape_data)
+        cmds.xform(self.control, worldSpace=True, matrix=matrix_data)
+
+        self.stack = Stack(self.control)
+        zero = self.stack.add(ZERO)
+        cmds.parent(zero, self.structure.controls)
+
+        zero.offsetParentMatrix.connect(self.in_parent_mtx.plug)
+
+        if self._offset_system:
+            self._offset_system.build(self.control)
+
+        for deferred_plug in self._control_deferred_plugs:
+            new_attr = self.control.add_attr(deferred_plug.name, **deferred_plug.settings)
+            deferred_plug.plug.connect(new_attr)
+
+        struct_mmlt = Node.create("multMatrix", name=self.name.replace(suffix="mmlt"))
+        struct_mmlt.matrixIn[0].connect(self.control.worldMatrix[0])
+        struct_mmlt.matrixIn[1].connect(zero.worldInverseMatrix[0])
+
+        self.out_local_mtx.plug.connect(self.control.matrix)
+        self.out_struct_mtx.plug.connect(struct_mmlt.matrixSum)
+        self.out_world_mtx.plug.connect(control.get_normalized_matrix_output(self.control))

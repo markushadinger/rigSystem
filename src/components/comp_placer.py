@@ -5,7 +5,7 @@ from maya import cmds
 from src.rig.controls import control, shape
 from src.lib import attributes, tags
 from src.components._comp_base import Component
-from src.rig.module.deferred_plug import TYPE_MATRIX
+from src.rig.module.deferred_plug import DeferredPlug, MATRIX
 
 
 @dataclass
@@ -15,12 +15,10 @@ class Outputs:
 
 
 class PlacerComponent(Component):
-    OUTPUTS = {
-        "placer_ws": TYPE_MATRIX,
-    }
+    output_mtx = DeferredPlug("placer_ws", "output", MATRIX)
 
-    def __init__(self, name: str):
-        super().__init__(name, None)
+    def __init__(self, name):
+        super().__init__(name)
 
     def build(self):
         ctrl = control.build(self.name)
@@ -36,4 +34,4 @@ class PlacerComponent(Component):
         shape.set_shape(ctrl, shape.scale_shape(shape.CIRCLE, 50))
         shape.set_color(ctrl, shape.COLOR_YELLOW)
 
-        self.outputs["placer_ws"].plug.connect(ctrl.worldMatrix[0])
+        self.output_mtx.plug.connect(ctrl.worldMatrix[0])

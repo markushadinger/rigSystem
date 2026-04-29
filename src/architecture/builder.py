@@ -4,14 +4,12 @@ from concurrent.futures import as_completed
 
 from src.rig.context import Context
 from src.architecture.signal import Signal
+from src.lib.naming import Name
 
 
 @runtime_checkable
 class Buildable(Protocol):
-
-    @property
-    def name(self) -> str:
-        ...
+    name: Name
 
 
 class Builder:
@@ -30,15 +28,17 @@ class Builder:
         self.signal_build_started = Signal()
         self.signal_build_ended = Signal()
 
+    def add_module(self, module: Buildable):
+        if module in self.modules:
+            return
+        self.modules.append(module)
+
     def run(self):
         """
         Runs the builder, executing all stages for all modules.
         :return:
         """
-        self.signal_build_started.emit(self.name)
-        for module in self.modules:
-            if hasattr(module, "context"):
-                setattr(module, "context", self.context)
+        self.populate_context(self.context)
 
         for stage in self.stages:
             self.run_stage(stage, stage in self.parallel_stages)
@@ -82,10 +82,25 @@ class Builder:
         :param stage: name of the stage
         :return:
         """
-        return [module for module in self.modules if hasattr(module, stage)]
+        modules = []
+        for module in self.modules:
+            try:
+                getattr(module, stage)
+                modules.append(module)
+            except AttributeError:
+                continue
+
+        return modules
 
     def __getattr__(self, item):
-        if item not in self.stages:
-            raise AttributeError(f"{__class__} does not have an attribute called {item}")
-
         return lambda stage=item: self.run_stage(stage)
+
+    def populate_context(self, context: Context):
+        for module in self.modules:
+            try:
+                setattr(module, "context", context)
+
+                if hasattr(module, "populate_context"):
+                    getattr(module, "populate_context")(context)
+            except RuntimeError:
+                continue
