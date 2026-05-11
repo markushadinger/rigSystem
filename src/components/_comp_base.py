@@ -13,6 +13,8 @@ from src.lib import guide
 from src.lib import naming
 from src.rig.controls import shape
 
+from maya import cmds
+
 
 class Component:
     def __init__(self, name):
@@ -33,6 +35,23 @@ class Component:
     def add_deferred_plug(self, plug: DeferredPlug) -> DeferredPlug:
         getattr(self, PLUG_INSTANCES)[plug.name] = plug
         return plug
+
+    def cleanup(self):
+        for plug in getattr(self, PLUG_INSTANCES).values():
+            if plug.direction != "input":
+                continue
+
+            if not plug.multi:
+                continue
+
+            out_indices = plug.plug.connected_indices()
+            in_plug = plug.plug.get_in_connection()
+
+            try:
+                for i in out_indices:
+                    plug.plug[i].connect(in_plug[i])
+            except:
+                pass
 
 
 class MacroComponent(Component):

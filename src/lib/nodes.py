@@ -53,7 +53,7 @@ class Plug(str):
         :return:
         """
 
-        plug: str | None = (cmds.listConnections(self, source=False, destination=True, plugs=True) or [None])[0]
+        plug: str | None = (cmds.listConnections(self, source=True, destination=False, plugs=True) or [None])[0]
 
         if plug is None:
             return
@@ -66,7 +66,7 @@ class Plug(str):
         :return:
         """
 
-        plugs: list[str] = cmds.listConnections(self, source=True, destination=False, plugs=True) or []
+        plugs: list[str] = cmds.listConnections(self, source=False, destination=True, plugs=True) or []
         return [self.from_string(p) for p in plugs]
 
     def connect(self, other: "Plug") -> None:
@@ -76,11 +76,14 @@ class Plug(str):
         :return:
         """
         if not isinstance(other, Plug):
-            raise TypeError("Can only connect Plug to Plug")
+            raise TypeError(f"Can only connect Plug to Plug. {other} -> {self}")
         cmds.connectAttr(other, self, force=True)
 
     def exists(self) -> bool:
         return cmds.objExists(self)
+
+    def connected_indices(self) -> list[int]:
+        return cmds.getAttr(self, multiIndices=True) or []
 
     def __setattr__(self, key, value):
         if key.startswith("_"):
@@ -141,6 +144,9 @@ class Node(str):
             cmds.addAttr(self, longName=name, **kwargs)
 
         return plug
+
+    def exists(self) -> bool:
+        return cmds.objExists(self)
 
 
 def is_matrix_value(value: any) -> bool:

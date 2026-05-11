@@ -1,3 +1,5 @@
+import dataclasses
+
 from maya import cmds
 
 from src.lib.nodes import Node
@@ -10,7 +12,7 @@ COLOR_WHITE = (1, 1, 1)
 COLOR_PURPLE = (1, 0, 1)
 COLOR_ORANGE = (1, 0.5, 0)
 
-SIDE_COLOR = {"r": COLOR_RED, "l": COLOR_BLUE, "m": COLOR_YELLOW}
+SIDE_COLOR = {"r": COLOR_RED, "l": COLOR_BLUE, "c": COLOR_YELLOW}
 
 CIRCLE = [(0.0, 0.0, -1.0), (-0.383, 0.0, -0.924), (-0.707, 0.0, -0.707), (-0.924, 0.0, -0.383), (-1.0, -0.0, 0.0),
           (-0.924, -0.0, 0.383), (-0.707, -0.0, 0.707), (-0.383, -0.0, 0.924), (0.0, -0.0, 1.0), (0.383, -0.0, 0.924),
@@ -21,11 +23,21 @@ CUBE = [(1.0, -1.0, 1.0), (-1.0, -1.0, 1.0), (-1.0, -1.0, -1.0), (1.0, -1.0, -1.
         (-1.0, 1.0, 1.0), (-1.0, -1.0, 1.0), (-1.0, 1.0, 1.0), (-1.0, 1.0, -1.0), (-1.0, -1.0, -1.0), (-1.0, 1.0, -1.0),
         (1.0, 1.0, -1.0), (1.0, -1.0, -1.0), (1.0, 1.0, -1.0), (1.0, 1.0, 1.0)]
 
+PYRAMID = [(-1.0, -1.0, 1.0), (-1.0, -1.0, -1.0), (0.0, 1.0, 0.0), (1.0, -1.0, -1.0), (1.0, -1.0, 1.0), (0.0, 1.0, 0.0),
+           (-1.0, -1.0, 1.0), (1.0, -1.0, 1.0), (1.0, -1.0, -1.0), (-1.0, -1.0, -1.0)]
+
 DEFAULT_SHAPE_DATA = {
     "points": CIRCLE,
     "degree": 1,
     "color": COLOR_WHITE,
 }
+
+
+@dataclasses.dataclass
+class ShapeData:
+    points: list
+    degree: int
+    color: list
 
 
 def round_point(p: tuple[float, ...], precision: int = 3) -> tuple[float, ...]:
@@ -56,14 +68,29 @@ def get_points_from_scene(shape_node: Node) -> list[tuple[float, ...]]:
     return [round_point(p) for p in cmds.getAttr(f"{shape_node}.controlPoints[*]")]
 
 
-def scale_shape(shape: list[tuple[float, ...]], scale: float) -> list[tuple[float, ...]]:
+def scale(shape: list[tuple[float, ...]], value: float | list[float]) -> list[tuple[float, ...]]:
     """
     Scale a shape.
-    :param shape: Shape to scale
-    :param scale: Scale factor
+    :param shape: Shape to value
+    :param value: Scale value
     :return: Scaled shape
     """
-    return [(x * scale, y * scale, z * scale) for x, y, z in shape]
+
+    if isinstance(value, (float, int)):
+        value = [value, value, value]
+
+    return [(x * value[0], y * value[1], z * value[2]) for x, y, z in shape]
+
+
+def translate(shape: list[tuple[float, ...]], value: list[float]) -> list[tuple[float, ...]]:
+    """
+    Scale a shape.
+    :param shape: Shape to value
+    :param value: Scale value
+    :return: Scaled shape
+    """
+
+    return [(x + value[0], y + value[1], z + value[2]) for x, y, z in shape]
 
 
 def set_shape(control: str, shape: list[tuple[float, ...]], degree: int = 1) -> None:

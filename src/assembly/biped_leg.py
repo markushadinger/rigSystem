@@ -15,8 +15,8 @@ from src.lib.naming import Name
 from src.rig.controls import shape
 
 
-class BipedArm(builder.Builder):
-    INDICES = ["shoulder", "elbow", "wrist"]
+class BipedLeg(builder.Builder):
+    INDICES = ["leg", "knee", "ankle", "ball", "toe"]
 
     def __init__(self, name: Name):
         super().__init__(name)
@@ -31,7 +31,7 @@ class BipedArm(builder.Builder):
         self.add_module(self.structure)
 
         self.switch = control.ControlGenerator(self.name.replace(extra="switch"))
-        self.switch.index = self.INDICES[-1]
+        self.switch.index = self.INDICES[2]
         self.switch.external_structure = self.structure.structure
         fk_ik_plug = self.switch.add_attr("fk_ik", dict(at="short", min=0, max=1, k=True))
         self.add_module(self.switch)
@@ -46,7 +46,7 @@ class BipedArm(builder.Builder):
 
         self.ik_handle = control.ControlGenerator(self.name.replace(extra="ik", index=self.INDICES[-1]))
         self.ik_handle.in_parent_mtx.connect(self.in_global)
-        self.ik_handle.index = self.INDICES[-1]
+        self.ik_handle.index = self.INDICES[2]
         self.ik_handle.external_structure = self.structure.structure
         self.ik_handle.default_shape = shape.ShapeData(
             points=shape.scale(shape.CUBE, 5),
@@ -78,7 +78,7 @@ class BipedArm(builder.Builder):
         self.ik.in_driver_mtx.connect(self.ik_handle.out_normalized_mtx)
         self.ik.in_parent_mtx.connect(self.in_parent)
         self.ik.external_structure = self.structure.structure
-        self.ik.indices = self.INDICES
+        self.ik.indices = self.INDICES[:3]
         self.ik.pole_index = self.INDICES[1]
         self.add_module(self.ik)
 

@@ -35,11 +35,11 @@ class Stack:
         if not self._target.stack.exists():
             return []
 
-        indices = cmds.getAttr(self._target.stack, multiIndices=True) or []
+        indices = self._target.stack.connected_indices()
 
         result = []
         for i in sorted(indices):
-            conns = self._target.stack[i].get_in_connection()
+            conns = (self._target.stack[i].get_out_connections() or [None])[0]
             if conns:
                 result.append(conns.node)
 

@@ -1,8 +1,11 @@
+import dataclasses
+
 from maya import cmds
 
 from src.components._comp_base import MacroComponent
 from src.lib.naming import Name
 from src.lib.nodes import Node
+from src.rig.controls import shape
 from src.rig.stack import Stack, ZERO
 from src.rig.controls import control
 from src.rig.module.deferred_plug import DeferredPlug, MATRIX
@@ -15,10 +18,13 @@ class ControlGenerator(MacroComponent):
     out_local_mtx = DeferredPlug("out_local_mtx", "output", MATRIX)
     out_struct_mtx = DeferredPlug("out_struct_mtx", "output", MATRIX)
     out_world_mtx = DeferredPlug("out_world_mtx", "output", MATRIX)
+    out_normalized_mtx = DeferredPlug("out_norm_mtx", "output", MATRIX)
 
     def __init__(self, name: Name):
         super().__init__(name)
 
+        self.default_shape: shape.ShapeData | None = None
+        self.has_shape: bool = True
         self.index: str | None = None
         self.control: Node | None = None
         self.stack: Stack | None = None
@@ -40,11 +46,13 @@ class ControlGenerator(MacroComponent):
             plug.build_plug(self.structure.output)
 
     def build(self):
-        shape_data = self.shape_data.get(self.name.replace(index=self.index))
+        shape_data = self.shape_data.get(self.name.replace(index=self.index),
+                                         dataclasses.asdict(self.default_shape) if self.default_shape else None)
         matrix_data = guide.get_world_matrix(self.name.replace(index=self.index))
 
         self.control = control.build(self.name)
-        control.add_shape_from_dict(self.control, shape_data)
+        if self.has_shape:
+            control.add_shape_from_dict(self.control, shape_data)
         cmds.xform(self.control, worldSpace=True, matrix=matrix_data)
 
         self.stack = Stack(self.control)
@@ -66,4 +74,5 @@ class ControlGenerator(MacroComponent):
 
         self.out_local_mtx.plug.connect(self.control.matrix)
         self.out_struct_mtx.plug.connect(struct_mmlt.matrixSum)
-        self.out_world_mtx.plug.connect(control.get_normalized_matrix_output(self.control))
+        self.out_world_mtx.plug.connect(self.control.worldMatrix[0])
+        self.out_normalized_mtx.plug.connect(control.get_normalized_matrix_output(self.control))

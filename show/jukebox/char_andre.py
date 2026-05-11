@@ -3,13 +3,17 @@ from src.architecture.builder_monitor import Monitor
 
 from src.components.system.comp_prepScene import PrepSceneComponent
 from src.components.comp_importModel import ImportModelComponent
-from src import components
 from src.components.fileImport import GuideFileImport
-from src.components.generator.control import ControlGenerator
+from src.components.control import ControlGenerator
 from src.components.jointRenderer import JointRenderer
+from src.components.matrixInverse import MatrixInverse
+from src.components.matricesMult import MatricesMult
+from src.assembly.biped_spine import BipedSpine
+from src.assembly.biped_leg import BipedLeg
 from src.rig.context import Context
 
 from src.lib.naming import Name
+from src.rig.controls import shape
 
 from src.assembly import biped_arm
 
@@ -29,12 +33,24 @@ import_model = ImportModelComponent("importModel")
 import_model.path = r"P:\AndreJukeBox\assets\character\andre\model\andre_model.ma"
 # builder.modules.append(import_model)
 
-placer = components.PlacerComponent(Name("placer"))
+placer = ControlGenerator(Name("placer"))
+placer.default_shape = shape.ShapeData(shape.scale(shape.CIRCLE, 30), color=shape.COLOR_YELLOW, degree=1)
 builder.modules.append(placer)
 
-# root = components.SimpleComponent(Name("root", side="m"))
-# root.inputs["parent_ws"].connect(placer.outputs["placer_ws"])
-# builder.modules.append(root)
+placer_inverse = MatrixInverse(placer.name.replace(extra="inverse"))
+placer_inverse.in_mtx.connect(placer.out_world_mtx)
+placer_inverse.external_structure = placer.structure
+builder.add_module(placer_inverse)
+
+root = ControlGenerator(Name("root", side="c"))
+root.in_parent_mtx.connect(placer.out_normalized_mtx)
+root.default_shape = shape.ShapeData(shape.scale(shape.CIRCLE, 20), color=shape.COLOR_YELLOW, degree=1)
+builder.modules.append(root)
+
+spine = BipedSpine(Name("spine", side="c"))
+spine.in_localize.connect(placer_inverse.out_mtx)
+spine.in_parent.connect(root.out_normalized_mtx)
+builder.add_module(spine)
 #
 # spine = components.HMSpineComponent(Name("spine", side="m"))
 # spine.inputs["parent_ws"].connect(root.outputs["control_ws"])
@@ -43,31 +59,33 @@ builder.modules.append(placer)
 
 for side in "lr":
     clavicle = ControlGenerator(Name("clavicle", side=side))
-    clavicle.in_parent_mtx.connect(placer.output_mtx)
+    clavicle.in_parent_mtx.connect(spine.out_end)
     builder.modules.append(clavicle)
+
+    clavicle_local = MatricesMult(clavicle.name.replace(extra="local"))
+    clavicle_local.external_structure = clavicle.structure
+    clavicle_local.in_mtxs.connect(clavicle.out_normalized_mtx, dst_index=0)
+    clavicle_local.in_parent_mtx.connect(placer_inverse.out_mtx)
+    builder.add_module(clavicle_local)
 
     clavicle_output = JointRenderer(clavicle.name.replace(extra="skin"))
     clavicle_output.external_structure = clavicle.structure
-    clavicle_output.input.connect(clavicle.out_world_mtx, dst_index=0)
+    clavicle_output.in_mtxs.connect(clavicle_local.out_mtxs)
     clavicle_output.nice_name = clavicle.name
     clavicle_output.for_skinning = True
     builder.add_module(clavicle_output)
 
-    # leg = components.BipedLeg("leg", side)
-    # leg.inputs["parent_ws"].connect(spine.outputs["joints_ws"], 0)
-    # leg.inputs["placer_ws"].connect(placer.outputs["placer_ws"])
-    # leg.pole_vector_distance = 20
-    # builder.modules.append(leg)
-
     arm = biped_arm.BipedArm(Name("arm", side=side))
-    arm.in_global.connect(placer.output_mtx)
-    arm.in_parent.connect(clavicle.out_world_mtx)
+    arm.in_global.connect(placer.out_normalized_mtx)
+    arm.in_parent.connect(clavicle.out_normalized_mtx)
+    arm.in_localize.connect(placer_inverse.out_mtx)
     builder.modules.append(arm)
 
-    # leg = biped_arm.BipedArm("leg", side)
-    # leg.fk.inputs["parent_mtx"].connect(clavicle.outputs["control_ws"])
-    # leg.fk.inputs["worldspace_mtx"].connect(placer.outputs["placer_ws"])
-    # builder.modules.append(leg)
+    leg = BipedLeg(Name("leg", side=side))
+    leg.in_global.connect(placer.out_normalized_mtx)
+    leg.in_parent.connect(spine.out_start)
+    leg.in_localize.connect(placer_inverse.out_mtx)
+    builder.add_module(leg)
 
 
 def run(stages: tuple[str] = STAGES_BUILD_FULL):

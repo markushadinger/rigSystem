@@ -15,7 +15,8 @@ class IK(MacroComponent):
     in_parent_mtx = DeferredPlug("parent_mtx", "input", MATRIX)
     in_driver_mtx = DeferredPlug("driver_mtx", "input", MATRIX)
     in_pole_mtx = DeferredPlug("pole_mtx", "input", MATRIX)
-    out_mtx = DeferredPlug("output_mtx", "output", MATRIX, multi=True)
+    out_mtx = DeferredPlug("out_mtx", "output", MATRIX, multi=True)
+    out_normalized_mtx = DeferredPlug("out_normalized_mtx", "output", MATRIX, multi=True)
 
     def __init__(self, name: naming.Name):
         super().__init__(name)
@@ -53,7 +54,8 @@ class IK(MacroComponent):
         cmds.parent(pole_constraint, self.structure.logic)
 
         for i, jnt in enumerate(self.joints):
-            self.out_mtx.plug[i].connect(control.get_normalized_matrix_output(jnt))
+            self.out_normalized_mtx.plug[i].connect(control.get_normalized_matrix_output(jnt))
+            self.out_mtx.plug[i].connect(jnt.worldMatrix[0])
 
         LockTipSystem().build(self)
 

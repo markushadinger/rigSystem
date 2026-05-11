@@ -59,7 +59,7 @@ def get_guide_data_for_component(component: str) -> dict[str, any]:
     return {naming.strip_suffix(guide): get_guide_data(guide) for guide in guides}
 
 
-def get_guide_node(name: naming.Name):
+def get_guide_node(name: naming.Name) -> Node:
     """
     Returns a guide node based on the name
     :param name:
@@ -74,4 +74,10 @@ def get_world_matrix(name: naming.Name) -> list[float]:
     :param name:
     :return:
     """
+
+    guide_node = get_guide_node(name)
+
+    if not guide_node.exists():
+        return DEFAULT_VALUE
+
     return get_guide_node(name).worldMatrix[0].value
