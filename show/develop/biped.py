@@ -1,8 +1,7 @@
 from src.architecture.builder import Builder
 from src.architecture.builder_monitor import Monitor
 
-from src.components.system.comp_prepScene import PrepSceneComponent
-from src.components.comp_importModel import ImportModelComponent
+from src.components.prepScene import PrepSceneComponent
 from src import components
 from src.rig.context import Context
 

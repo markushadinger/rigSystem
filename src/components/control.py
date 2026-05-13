@@ -30,11 +30,25 @@ class ControlGenerator(MacroComponent):
         self.stack: Stack | None = None
         self._control_deferred_plugs: list[DeferredPlug] = []
         self._offset_system: OffsetSystem | None = None
+        self._disabled_attributes: set[str] = set('v')
 
-    def add_attr(self, name: str, settings: dict) -> DeferredPlug:
-        plug = DeferredPlug(name, "output", settings)
+    def add_attr(self, name: str, **kwargs) -> DeferredPlug:
+        plug = DeferredPlug(name, "output", kwargs)
         self._control_deferred_plugs.append(plug)
         return plug
+
+    def add_seperator(self, label: str):
+        ctrl_count = len(self._control_deferred_plugs)
+        self._control_deferred_plugs.append(dict(
+            name=f"sep_{ctrl_count}",
+            nn="------",
+            at="enum",
+            en=label,
+            k=True,
+        ))
+
+    def remove_attr(self, attr: str):
+        self._disabled_attributes.add(attr)
 
     def set_offset_system(self, system: OffsetSystem):
         self._offset_system = system
@@ -43,7 +57,8 @@ class ControlGenerator(MacroComponent):
         super().prepare()
 
         for plug in self._control_deferred_plugs:
-            plug.build_plug(self.structure.output)
+            if isinstance(plug, DeferredPlug):
+                plug.build_plug(self.structure.output)
 
     def build(self):
         shape_data = self.shape_data.get(self.name.replace(index=self.index),
@@ -64,9 +79,8 @@ class ControlGenerator(MacroComponent):
         if self._offset_system:
             self._offset_system.build(self.control)
 
-        for deferred_plug in self._control_deferred_plugs:
-            new_attr = self.control.add_attr(deferred_plug.name, **deferred_plug.settings)
-            deferred_plug.plug.connect(new_attr)
+        self._build_custom_attributes()
+        self._remove_attributes()
 
         struct_mmlt = Node.create("multMatrix", name=self.name.replace(suffix="mmlt"))
         struct_mmlt.matrixIn[0].connect(self.control.worldMatrix[0])
@@ -76,3 +90,22 @@ class ControlGenerator(MacroComponent):
         self.out_struct_mtx.plug.connect(struct_mmlt.matrixSum)
         self.out_world_mtx.plug.connect(self.control.worldMatrix[0])
         self.out_normalized_mtx.plug.connect(control.get_normalized_matrix_output(self.control))
+
+    def _build_custom_attributes(self):
+        """
+
+        :return:
+        """
+        for deferred_plug in self._control_deferred_plugs:
+            if isinstance(deferred_plug, DeferredPlug):
+                new_attr = self.control.add_attr(deferred_plug.name, **deferred_plug.settings)
+                deferred_plug.plug.connect(new_attr)
+            else:
+                self.control.add_attr(**deferred_plug)
+
+    def _remove_attributes(self):
+        for attr in self._disabled_attributes:
+            plug = getattr(self.control, attr)
+            plug.lock = True
+            plug.cb = False
+            plug.k = False

@@ -40,15 +40,11 @@ class IK(MacroComponent):
         cmds.parent(self.joints[0], self.structure.logic)
         self.joints[0].offsetParentMatrix.connect(self.in_parent_mtx.plug)
 
-        pole_mtx = Node.create("multMatrix", name=self.name.replace(suffix="mmlt"))
-        pole_mtx.matrixIn[0].value = mid_mtx
-        pole_mtx.matrixIn[1].connect(self.in_pole_mtx.plug)
-
         ik_handle, pole_constraint = ik.build_pole_ik(
             name=self.name.replace(extra="ik"),
             chain=self.joints,
             driver_plug=self.in_driver_mtx.plug,
-            pole_plug=pole_mtx.matrixSum
+            pole_plug=self.in_pole_mtx.plug
         )
         cmds.parent(ik_handle, self.structure.logic)
         cmds.parent(pole_constraint, self.structure.logic)

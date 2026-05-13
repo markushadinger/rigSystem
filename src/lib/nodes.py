@@ -90,7 +90,7 @@ class Plug(str):
             super().__setattr__(key, value)
             return
 
-        if hasattr(self, key):
+        if key == "value":
             super().__setattr__(key, value)
             return
 

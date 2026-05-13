@@ -26,7 +26,7 @@ class BipedSpine(builder.Builder):
         self.hip_shape = shape.ShapeData(points=shape.scale(shape.CIRCLE, 15), color=shape.COLOR_GREEN, degree=1)
 
         self.hip_indices = ["hip0", "hip1"]
-        self.spine_indices = list(range(6))
+        self.spine_indices = list(range(4))
 
         self.color = shape.SIDE_COLOR[self.name.side]
         self.ik_shape = shape.ShapeData(points=shape.scale(shape.CUBE, 5), color=self.color, degree=1)

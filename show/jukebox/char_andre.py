@@ -1,8 +1,8 @@
 from src.architecture.builder import Builder
 from src.architecture.builder_monitor import Monitor
 
-from src.components.system.comp_prepScene import PrepSceneComponent
-from src.components.comp_importModel import ImportModelComponent
+from src.components.prepScene import PrepSceneComponent
+from src.components.importModel import ImportModelComponent
 from src.components.fileImport import GuideFileImport
 from src.components.control import ControlGenerator
 from src.components.jointRenderer import JointRenderer
@@ -51,11 +51,7 @@ spine = BipedSpine(Name("spine", side="c"))
 spine.in_localize.connect(placer_inverse.out_mtx)
 spine.in_parent.connect(root.out_normalized_mtx)
 builder.add_module(spine)
-#
-# spine = components.HMSpineComponent(Name("spine", side="m"))
-# spine.inputs["parent_ws"].connect(root.outputs["control_ws"])
 
-# builder.modules.append(spine)
 
 for side in "lr":
     clavicle = ControlGenerator(Name("clavicle", side=side))

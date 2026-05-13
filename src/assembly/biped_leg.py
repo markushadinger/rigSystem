@@ -6,8 +6,9 @@ from src.components.matricesSwitch import MatricesSwitch
 from src.components.jointRenderer import JointRenderer
 from src.assembly.basic.fk_chain import FkChain
 from src.components._comp_base import Component
+from src.components.footRoll import FootRoll
 from src.components.matricesMult import MatricesMult
-from src.rig.module.deferred_plug import DeferredPlug, MATRIX
+from src.rig.module.deferred_plug import DeferredPlug, MATRIX, FLOAT
 
 from src.components import control, ik
 
@@ -33,7 +34,7 @@ class BipedLeg(builder.Builder):
         self.switch = control.ControlGenerator(self.name.replace(extra="switch"))
         self.switch.index = self.INDICES[2]
         self.switch.external_structure = self.structure.structure
-        fk_ik_plug = self.switch.add_attr("fk_ik", dict(at="short", min=0, max=1, k=True))
+        fk_ik_plug = self.switch.add_attr("fk_ik", at="short", min=0, max=1, k=True)
         self.add_module(self.switch)
 
         self.fk = FkChain(self.name.replace(extra="fk"))
@@ -53,7 +54,35 @@ class BipedLeg(builder.Builder):
             color=self.color,
             degree=1
         )
+        self.roll_attr = self.ik_handle.add_attr("roll", at="float", k=True)
+        self.bank_attr = self.ik_handle.add_attr("bank", at="float", k=True)
+        self.ik_handle.add_seperator("Twist")
+        self.heel_twist = self.ik_handle.add_attr("heelTwist", at="float", k=True)
+        self.ball_twist = self.ik_handle.add_attr("ballTwist", at="float", k=True)
+        self.toe_twist = self.ik_handle.add_attr("toeTwist", at="float", k=True)
+        self.ball_roll_compensate = self.ik_handle.add_attr("ballRollCompensate", at="float", k=False, dv=5)
+        self.tip_start_rise = self.ik_handle.add_attr("tipStartRise", at="float", k=False, dv=30)
+        self.tip_end_rise = self.ik_handle.add_attr("tipEndRise", at="float", k=False, dv=60)
         self.add_module(self.ik_handle)
+
+        self.foot_roll = FootRoll(self.name.replace(extra="roll"))
+        self.foot_roll.external_structure = self.structure.structure
+        self.foot_roll.bank_in_index = "bankIn"
+        self.foot_roll.bank_out_index = "bankOut"
+        self.foot_roll.heel_index = "heel"
+        self.foot_roll.tip_index = "tip"
+        self.foot_roll.bank_ball_index = "ballBank"
+        self.foot_roll.in_roll_flt.connect(self.roll_attr)
+        self.foot_roll.indices = self.INDICES[2:]
+        self.foot_roll.in_parent_mtx.connect(self.ik_handle.out_normalized_mtx)
+        self.foot_roll.in_bank_flt.connect(self.bank_attr)
+        self.foot_roll.in_ball_roll_compensate.connect(self.ball_roll_compensate)
+        self.foot_roll.in_tip_start_rise.connect(self.tip_start_rise)
+        self.foot_roll.in_tip_end_rise.connect(self.tip_end_rise)
+        self.foot_roll.in_heel_twist.connect(self.heel_twist)
+        self.foot_roll.in_ball_twist.connect(self.ball_twist)
+        self.foot_roll.in_toe_twist.connect(self.toe_twist)
+        self.add_module(self.foot_roll)
 
         self.pole_offset = PoleVectorOffsetSystem(self.name)
         self.pole_offset.distance = 10.0
@@ -71,11 +100,14 @@ class BipedLeg(builder.Builder):
             color=self.color,
             degree=1
         )
+        for attr in "rs":
+            for axis in "xyz":
+                self.ik_pole.remove_attr(attr + axis)
         self.add_module(self.ik_pole)
 
         self.ik = ik.IK(self.name.replace(extra="ik"))
-        self.ik.in_pole_mtx.connect(self.ik_pole.out_normalized_mtx)
-        self.ik.in_driver_mtx.connect(self.ik_handle.out_normalized_mtx)
+        self.ik.in_pole_mtx.connect(self.ik_pole.out_world_mtx)
+        self.ik.in_driver_mtx.connect(self.foot_roll.out_normalized_mtxs, src_index=0)
         self.ik.in_parent_mtx.connect(self.in_parent)
         self.ik.external_structure = self.structure.structure
         self.ik.indices = self.INDICES[:3]
@@ -83,7 +115,11 @@ class BipedLeg(builder.Builder):
         self.add_module(self.ik)
 
         self.blend = MatricesSwitch(self.name.replace(extra="blend"))
-        self.blend.in_a_mtxs.connect(self.ik.out_normalized_mtx)
+        self.blend.in_a_mtxs.connect(self.ik.out_normalized_mtx, src_index=0, dst_index=0)
+        self.blend.in_a_mtxs.connect(self.ik.out_normalized_mtx, src_index=1, dst_index=1)
+        self.blend.in_a_mtxs.connect(self.foot_roll.out_normalized_mtxs, src_index=0, dst_index=2)
+        self.blend.in_a_mtxs.connect(self.foot_roll.out_normalized_mtxs, src_index=1, dst_index=3)
+        self.blend.in_a_mtxs.connect(self.foot_roll.out_normalized_mtxs, src_index=2, dst_index=4)
         self.blend.in_b_mtxs.connect(self.fk.out_normalized_mtx)
         self.blend.external_structure = self.structure.structure
         self.blend.in_switch_bool.connect(fk_ik_plug)

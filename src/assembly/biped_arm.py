@@ -33,7 +33,7 @@ class BipedArm(builder.Builder):
         self.switch = control.ControlGenerator(self.name.replace(extra="switch"))
         self.switch.index = self.INDICES[-1]
         self.switch.external_structure = self.structure.structure
-        fk_ik_plug = self.switch.add_attr("fk_ik", dict(at="short", min=0, max=1, k=True))
+        fk_ik_plug = self.switch.add_attr("fk_ik", at="short", min=0, max=1, k=True)
         self.add_module(self.switch)
 
         self.fk = FkChain(self.name.replace(extra="fk"))
@@ -71,10 +71,13 @@ class BipedArm(builder.Builder):
             color=self.color,
             degree=1
         )
+        for attr in "rs":
+            for axis in "xyz":
+                self.ik_pole.remove_attr(attr + axis)
         self.add_module(self.ik_pole)
 
         self.ik = ik.IK(self.name.replace(extra="ik"))
-        self.ik.in_pole_mtx.connect(self.ik_pole.out_normalized_mtx)
+        self.ik.in_pole_mtx.connect(self.ik_pole.out_world_mtx)
         self.ik.in_driver_mtx.connect(self.ik_handle.out_normalized_mtx)
         self.ik.in_parent_mtx.connect(self.in_parent)
         self.ik.external_structure = self.structure.structure
