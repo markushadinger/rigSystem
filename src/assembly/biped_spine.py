@@ -79,6 +79,7 @@ class BipedSpine(builder.Builder):
         self.ribbon.external_structure = self.structure.structure
         self.ribbon.flip_indices = list(range(len(self.hip_indices)))
         self.ribbon.sample_points = 10
+        self.ribbon.degree = 2
         self.add_module(self.ribbon)
 
         self.output_joints = JointRenderer(self.name.replace(extra="skin"))

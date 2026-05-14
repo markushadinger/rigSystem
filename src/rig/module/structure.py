@@ -1,4 +1,4 @@
-from src.lib import attributes, naming
+from src.lib import naming
 from src.lib.nodes import Node
 
 
@@ -50,6 +50,11 @@ class ModuleStructure:
             self.logic,
             self.deform,
         ]:
-            for attr in attributes.TRANSFORM_ATTRS:
-                attributes.lock_and_hide_attr(str(group), attr)
+            for attr in "trs":
+                for axis in "xyz":
+                    attribute = attr + axis
+                    getattr(group, attribute).lock = True
+                    getattr(group, attribute).k = False
+                    getattr(group, attribute).cb = False
+
             group.inheritsTransform.value = False

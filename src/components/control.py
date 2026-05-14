@@ -107,5 +107,6 @@ class ControlGenerator(MacroComponent):
         for attr in self._disabled_attributes:
             plug = getattr(self.control, attr)
             plug.lock = True
-            plug.cb = False
             plug.k = False
+            plug.cb = False
+

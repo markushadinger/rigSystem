@@ -53,6 +53,10 @@ class BipedArm(builder.Builder):
             color=self.color,
             degree=1
         )
+        self.ik_handle.add_seperator("Stretch")
+        self.upper_stretch = self.ik_handle.add_attr("upperStretch", at="float", k=True, dv=1, min=0.01)
+        self.lower_stretch = self.ik_handle.add_attr("lowerStretch", at="float", k=True, dv=1, min=0.01)
+        self.soft_radius = self.ik_handle.add_attr("softRadius", at="float", k=False, dv=0.4)
         self.add_module(self.ik_handle)
 
         self.pole_offset = PoleVectorOffsetSystem(self.name)
@@ -76,8 +80,20 @@ class BipedArm(builder.Builder):
                 self.ik_pole.remove_attr(attr + axis)
         self.add_module(self.ik_pole)
 
+        ik_stretch = ik.Stretch(self.name.replace(extra="ikStretch"))
+        ik_stretch.indices = self.INDICES[:3]
+        ik_stretch.external_structure = self.structure.structure
+        ik_stretch.in_start_mtx.connect(self.in_parent)
+        ik_stretch.in_inv_scale_mtx.connect(self.in_localize)
+        ik_stretch.in_end_mtx.connect(self.ik_handle.out_normalized_mtx)
+        ik_stretch.in_custom_stretch.connect(self.upper_stretch, dst_index=0)
+        ik_stretch.in_custom_stretch.connect(self.lower_stretch, dst_index=1)
+        ik_stretch.in_soft_radius.connect(self.soft_radius)
+        self.ik_stretch = self.add_module(ik_stretch)
+
         self.ik = ik.IK(self.name.replace(extra="ik"))
         self.ik.in_pole_mtx.connect(self.ik_pole.out_world_mtx)
+        self.ik.in_stretch_flt.connect(ik_stretch.out_length_flts)
         self.ik.in_driver_mtx.connect(self.ik_handle.out_normalized_mtx)
         self.ik.in_parent_mtx.connect(self.in_parent)
         self.ik.external_structure = self.structure.structure
@@ -86,7 +102,9 @@ class BipedArm(builder.Builder):
         self.add_module(self.ik)
 
         self.blend = MatricesSwitch(self.name.replace(extra="blend"))
-        self.blend.in_a_mtxs.connect(self.ik.out_normalized_mtx)
+        self.blend.in_a_mtxs.connect(self.ik.out_normalized_mtx, src_index=0, dst_index=0)
+        self.blend.in_a_mtxs.connect(self.ik.out_normalized_mtx, src_index=1, dst_index=1)
+        self.blend.in_a_mtxs.connect(self.ik_handle.out_normalized_mtx, dst_index=2)
         self.blend.in_b_mtxs.connect(self.fk.out_normalized_mtx)
         self.blend.external_structure = self.structure.structure
         self.blend.in_switch_bool.connect(fk_ik_plug)

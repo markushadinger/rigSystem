@@ -30,8 +30,10 @@ class Builder:
 
     def add_module(self, module: Buildable):
         if module in self.modules:
-            return
+            return self.modules.index(module)
+
         self.modules.append(module)
+        return module
 
     def run(self):
         """

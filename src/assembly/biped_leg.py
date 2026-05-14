@@ -45,7 +45,7 @@ class BipedLeg(builder.Builder):
         self.fk.init_submodules()
         self.add_module(self.fk)
 
-        self.ik_handle = control.ControlGenerator(self.name.replace(extra="ik", index=self.INDICES[-1]))
+        self.ik_handle = control.ControlGenerator(self.name.replace(extra="ik", index=self.INDICES[2]))
         self.ik_handle.in_parent_mtx.connect(self.in_global)
         self.ik_handle.index = self.INDICES[2]
         self.ik_handle.external_structure = self.structure.structure
@@ -54,6 +54,10 @@ class BipedLeg(builder.Builder):
             color=self.color,
             degree=1
         )
+        self.ik_handle.add_seperator("Stretch")
+        self.upper_stretch = self.ik_handle.add_attr("upperStretch", at="float", k=True, dv=1, min=0.01)
+        self.lower_stretch = self.ik_handle.add_attr("lowerStretch", at="float", k=True, dv=1, min=0.01)
+        self.ik_handle.add_seperator("Roll")
         self.roll_attr = self.ik_handle.add_attr("roll", at="float", k=True)
         self.bank_attr = self.ik_handle.add_attr("bank", at="float", k=True)
         self.ik_handle.add_seperator("Twist")
@@ -63,6 +67,7 @@ class BipedLeg(builder.Builder):
         self.ball_roll_compensate = self.ik_handle.add_attr("ballRollCompensate", at="float", k=False, dv=5)
         self.tip_start_rise = self.ik_handle.add_attr("tipStartRise", at="float", k=False, dv=30)
         self.tip_end_rise = self.ik_handle.add_attr("tipEndRise", at="float", k=False, dv=60)
+        self.soft_radius = self.ik_handle.add_attr("softRadius", at="float", k=False, dv=0.4)
         self.add_module(self.ik_handle)
 
         self.foot_roll = FootRoll(self.name.replace(extra="roll"))
@@ -105,7 +110,19 @@ class BipedLeg(builder.Builder):
                 self.ik_pole.remove_attr(attr + axis)
         self.add_module(self.ik_pole)
 
+        ik_stretch = ik.Stretch(self.name.replace(extra="ikStretch"))
+        ik_stretch.indices = self.INDICES[:3]
+        ik_stretch.external_structure = self.structure.structure
+        ik_stretch.in_start_mtx.connect(self.in_parent)
+        ik_stretch.in_inv_scale_mtx.connect(self.in_localize)
+        ik_stretch.in_end_mtx.connect(self.foot_roll.out_normalized_mtxs, src_index=0)
+        ik_stretch.in_custom_stretch.connect(self.upper_stretch, dst_index=0)
+        ik_stretch.in_custom_stretch.connect(self.lower_stretch, dst_index=1)
+        ik_stretch.in_soft_radius.connect(self.soft_radius)
+        self.ik_stretch = self.add_module(ik_stretch)
+
         self.ik = ik.IK(self.name.replace(extra="ik"))
+        self.ik.in_stretch_flt.connect(ik_stretch.out_length_flts)
         self.ik.in_pole_mtx.connect(self.ik_pole.out_world_mtx)
         self.ik.in_driver_mtx.connect(self.foot_roll.out_normalized_mtxs, src_index=0)
         self.ik.in_parent_mtx.connect(self.in_parent)
