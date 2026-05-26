@@ -8,7 +8,6 @@ from src.rig.controls import control
 from src.lib import naming
 from src.lib import joint
 from src.lib.nodes import Node
-from src.rig.snippets import ik
 
 
 class FootRoll(MacroComponent):

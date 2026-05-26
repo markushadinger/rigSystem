@@ -1,5 +1,3 @@
-from maya import cmds
-
 from src.rig.context import Context
 from src.rig.data_manager import JsonDataManager
 from src.lib import guide

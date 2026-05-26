@@ -1,16 +1,11 @@
 from src.architecture import builder
 
-from src.components.offset_systems.poleVectorOffsetSystem import PoleVectorOffsetSystem
-
-from src.components.matricesSwitch import MatricesSwitch
 from src.components.jointRenderer import JointRenderer
 from src.assembly.basic.fk_chain import FkChain
 from src.components._comp_base import Component
 from src.components.matricesMult import MatricesMult
 from src.components.ribbon import Ribbon
 from src.rig.module.deferred_plug import DeferredPlug, MATRIX
-
-from src.components import control, ik
 
 from src.lib.naming import Name
 from src.rig.controls import shape
@@ -38,6 +33,9 @@ class BipedSpine(builder.Builder):
 
         self.out_start = self.structure.add_deferred_plug(DeferredPlug("out_start", "input", MATRIX))
         self.out_end = self.structure.add_deferred_plug(DeferredPlug("out_end", "input", MATRIX))
+        self.out_local_start = self.structure.add_deferred_plug(DeferredPlug("out_local_start", "input", MATRIX))
+        self.out_local_end = self.structure.add_deferred_plug(DeferredPlug("out_local_end", "input", MATRIX))
+        self.out_mtxs = self.structure.add_deferred_plug(DeferredPlug("out_mtxs", "input", MATRIX, multi=True))
         self.add_module(self.structure)
 
         # self.switch = control.ControlGenerator(self.name.replace(extra="switch"))
@@ -74,6 +72,13 @@ class BipedSpine(builder.Builder):
         self.localize_joints.in_parent_mtx.connect(self.in_localize)
         self.add_module(self.localize_joints)
 
+        self.localize_controls = MatricesMult(self.name.replace(extra="localCtrl"))
+        self.localize_controls.external_structure = self.structure.structure
+        self.localize_controls.in_mtxs.connect(self.hip_fk.fk_modules[-1].out_normalized_mtx, dst_index=0)
+        self.localize_controls.in_mtxs.connect(self.fk.fk_modules[-1].out_normalized_mtx, dst_index=1)
+        self.localize_controls.in_parent_mtx.connect(self.in_localize)
+        self.add_module(self.localize_controls)
+
         self.ribbon = Ribbon(self.name.replace(extra="ribbon"))
         self.ribbon.in_mtx.connect(self.localize_joints.out_mtxs)
         self.ribbon.external_structure = self.structure.structure
@@ -93,3 +98,6 @@ class BipedSpine(builder.Builder):
 
         self.out_start.connect(self.hip_fk.out_normalized_mtx, src_index=1)
         self.out_end.connect(self.fk.out_normalized_mtx, src_index=len(self.spine_indices) - 1)
+        self.out_local_start.connect(self.localize_controls.out_mtxs, src_index=0)
+        self.out_local_end.connect(self.localize_controls.out_mtxs, src_index=1)
+        self.out_mtxs.connect(self.ribbon.out_normalized_mtx)

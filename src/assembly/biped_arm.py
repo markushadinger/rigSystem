@@ -5,9 +5,14 @@ from src.components.offset_systems.poleVectorOffsetSystem import PoleVectorOffse
 from src.components.matricesSwitch import MatricesSwitch
 from src.components.jointRenderer import JointRenderer
 from src.assembly.basic.fk_chain import FkChain
+from src.components.line import Line
+from src.components.spaceSwitch import SpaceSwitch
 from src.components._comp_base import Component
+from src.components.piston import Piston
 from src.components.matricesMult import MatricesMult
 from src.rig.module.deferred_plug import DeferredPlug, MATRIX
+
+from src.lib import constants
 
 from src.components import control, ik
 
@@ -22,30 +27,65 @@ class BipedArm(builder.Builder):
         super().__init__(name)
 
         self.color = shape.SIDE_COLOR[self.name.side]
-        self.ik_shape = shape.ShapeData(points=shape.scale(shape.CUBE, 5), color=self.color, degree=1)
+        self.ik_shape = shape.ShapeData(
+            points=shape.scale(shape.CUBE, 5),
+            color=self.color,
+            degree=1)
+        self.switch_shape = shape.ShapeData(
+            points=shape.translate(shape.scale(shape.DROPLET, [3, 3, -3]), [0, 0, 10]),
+            color=self.color,
+            degree=1)
+
+        self.fk_shape = shape.ShapeData(
+            points=shape.rotate(shape.scale(shape.CIRCLE, 5), [0, 0, 90]),
+            color=self.color,
+            degree=1)
 
         self.structure = Component(self.name)
         self.in_global = self.structure.add_deferred_plug(DeferredPlug("in_global", "input", MATRIX))
         self.in_localize = self.structure.add_deferred_plug(DeferredPlug("in_localize", "input", MATRIX))
         self.in_parent = self.structure.add_deferred_plug(DeferredPlug("in_parent", "input", MATRIX))
+        self.in_local_parent = self.structure.add_deferred_plug(DeferredPlug("in_local_parent", "input", MATRIX))
         self.add_module(self.structure)
 
         self.switch = control.ControlGenerator(self.name.replace(extra="switch"))
         self.switch.index = self.INDICES[-1]
         self.switch.external_structure = self.structure.structure
-        fk_ik_plug = self.switch.add_attr("fk_ik", at="short", min=0, max=1, k=True)
+        self.switch.default_shape = self.switch_shape
+        self.switch.remove_attr(*constants.ATTR_TRF)
+        self.fk_ik_attr = self.switch.add_attr("fk_ik", at="short", min=0, max=1, k=True, dv=1)
         self.add_module(self.switch)
 
+        # ------- fk
+
+        self.fk_spsw = SpaceSwitch(self.name.replace(extra="fkSpSw"))
+        self.fk_spsw.parent_mtx.connect(self.in_parent)
+        self.fk_spsw.index = self.INDICES[0]
+        self.fk_spsw.rotation = True
+        self.add_module(self.fk_spsw)
+
         self.fk = FkChain(self.name.replace(extra="fk"))
-        self.fk.in_mtx.connect(self.in_parent)
+        self.fk.in_mtx.connect(self.fk_spsw.out_mtx)
         self.fk.indices = self.INDICES
         self.fk.structure.external_structure = self.structure.structure
         self.fk.for_skinning = True
+        self.fk.default_shape = self.fk_shape
         self.fk.init_submodules()
         self.add_module(self.fk)
 
+        self.fk_spsw_attr = self.fk.fk_modules[0].add_attr("space", at="enum", k=True, dv=0, en="-")
+        self.fk_spsw.switch_int.connect(self.fk_spsw_attr)
+
+        # ---------- ik
+        self.ik_spsw = SpaceSwitch(self.name.replace(extra="ikSpSw"))
+        self.ik_spsw.parent_mtx.connect(self.in_global)
+        self.ik_spsw.index = self.INDICES[2]
+        self.ik_spsw.rotation = True
+        self.ik_spsw.translation = True
+        self.add_module(self.ik_spsw)
+
         self.ik_handle = control.ControlGenerator(self.name.replace(extra="ik", index=self.INDICES[-1]))
-        self.ik_handle.in_parent_mtx.connect(self.in_global)
+        self.ik_handle.in_parent_mtx.connect(self.ik_spsw.out_mtx)
         self.ik_handle.index = self.INDICES[-1]
         self.ik_handle.external_structure = self.structure.structure
         self.ik_handle.default_shape = shape.ShapeData(
@@ -53,11 +93,14 @@ class BipedArm(builder.Builder):
             color=self.color,
             degree=1
         )
+        self.ik_spsw_attr = self.ik_handle.add_attr("space", at="enum", k=True, dv=0, en="-")
         self.ik_handle.add_seperator("Stretch")
         self.upper_stretch = self.ik_handle.add_attr("upperStretch", at="float", k=True, dv=1, min=0.01)
         self.lower_stretch = self.ik_handle.add_attr("lowerStretch", at="float", k=True, dv=1, min=0.01)
         self.soft_radius = self.ik_handle.add_attr("softRadius", at="float", k=False, dv=0.4)
         self.add_module(self.ik_handle)
+
+        self.ik_spsw.switch_int.connect(self.ik_spsw_attr)
 
         self.pole_offset = PoleVectorOffsetSystem(self.name)
         self.pole_offset.distance = 10.0
@@ -65,8 +108,15 @@ class BipedArm(builder.Builder):
         self.pole_offset.pole_index = self.INDICES[1]
         self.pole_offset.end_index = self.INDICES[2]
 
+        self.pole_spsw = SpaceSwitch(self.name.replace(extra="poleSpSw"))
+        self.pole_spsw.parent_mtx.connect(self.in_global)
+        self.pole_spsw.index = self.INDICES[1]
+        self.pole_spsw.rotation = True
+        self.pole_spsw.translation = True
+        self.add_module(self.pole_spsw)
+
         self.ik_pole = control.ControlGenerator(self.name.replace(extra="ik", index="pole"))
-        self.ik_pole.in_parent_mtx.connect(self.in_global)
+        self.ik_pole.in_parent_mtx.connect(self.pole_spsw.out_mtx)
         self.ik_pole.external_structure = self.structure.structure
         self.ik_pole.index = self.INDICES[1]
         self.ik_pole.set_offset_system(self.pole_offset)
@@ -75,10 +125,11 @@ class BipedArm(builder.Builder):
             color=self.color,
             degree=1
         )
-        for attr in "rs":
-            for axis in "xyz":
-                self.ik_pole.remove_attr(attr + axis)
+        self.ik_pole.remove_attr(*constants.ATTR_R, *constants.ATTR_S)
         self.add_module(self.ik_pole)
+
+        self.pole_spsw_attr = self.ik_pole.add_attr("space", at="enum", k=True, dv=0, en="-")
+        self.pole_spsw.switch_int.connect(self.pole_spsw_attr)
 
         ik_stretch = ik.Stretch(self.name.replace(extra="ikStretch"))
         ik_stretch.indices = self.INDICES[:3]
@@ -101,13 +152,21 @@ class BipedArm(builder.Builder):
         self.ik.pole_index = self.INDICES[1]
         self.add_module(self.ik)
 
+        self.ik_line = Line(self.name.replace(extra="ikLine"))
+        self.ik_line.external_structure = self.structure.structure
+        self.ik_line.start_mtx.connect(self.ik_pole.out_world_mtx)
+        self.ik_line.end_mtx.connect(self.ik.out_mtx, src_index=1)
+        self.add_module(self.ik_line)
+
+        # ------ blend
+
         self.blend = MatricesSwitch(self.name.replace(extra="blend"))
-        self.blend.in_a_mtxs.connect(self.ik.out_normalized_mtx, src_index=0, dst_index=0)
-        self.blend.in_a_mtxs.connect(self.ik.out_normalized_mtx, src_index=1, dst_index=1)
-        self.blend.in_a_mtxs.connect(self.ik_handle.out_normalized_mtx, dst_index=2)
-        self.blend.in_b_mtxs.connect(self.fk.out_normalized_mtx)
+        self.blend.in_a_mtxs.connect(self.fk.out_normalized_mtx)
+        self.blend.in_b_mtxs.connect(self.ik.out_normalized_mtx, src_index=0, dst_index=0)
+        self.blend.in_b_mtxs.connect(self.ik.out_normalized_mtx, src_index=1, dst_index=1)
+        self.blend.in_b_mtxs.connect(self.ik_handle.out_normalized_mtx, dst_index=2)
         self.blend.external_structure = self.structure.structure
-        self.blend.in_switch_bool.connect(fk_ik_plug)
+        self.blend.in_switch_bool.connect(self.fk_ik_attr)
         self.add_module(self.blend)
 
         self.switch.in_parent_mtx.connect(self.blend.out_mtxs, src_index=2)
@@ -125,3 +184,37 @@ class BipedArm(builder.Builder):
         self.output_joints.in_mtxs.connect(self.localize_joints.out_mtxs)
         self.output_joints.for_skinning = True
         self.add_module(self.output_joints)
+
+        # --------- twist
+
+        upper_twist = Piston(self.name.replace(extra="upperTwist"))
+        upper_twist.indices = self.INDICES[:2]
+        upper_twist.external_structure = self.structure.structure
+        upper_twist.in_start_mtx.connect(self.in_local_parent)
+        upper_twist.in_end_mtx.connect(self.localize_joints.out_mtxs, src_index=1)
+        self.upper_twist = self.add_module(upper_twist)
+
+        upper_twist_joints = JointRenderer(self.name.replace(extra="upperTwistSkin"))
+        upper_twist_joints.indices = range(upper_twist.sample_count)
+        upper_twist_joints.nice_name = self.name.replace(extra="upperTwist")
+        upper_twist_joints.external_structure = self.structure.structure
+        upper_twist_joints.in_mtxs.connect(self.upper_twist.out_mtxs)
+        upper_twist_joints.from_guides = False
+        upper_twist_joints.for_skinning = True
+        self.upper_twist_joints = self.add_module(upper_twist_joints)
+
+        lower_twist = Piston(self.name.replace(extra="lowerTwist"))
+        lower_twist.indices = self.INDICES[1:3]
+        lower_twist.external_structure = self.structure.structure
+        lower_twist.in_start_mtx.connect(self.localize_joints.out_mtxs, src_index=1)
+        lower_twist.in_end_mtx.connect(self.localize_joints.out_mtxs, src_index=2)
+        self.lower_twist = self.add_module(lower_twist)
+
+        lower_twist_joints = JointRenderer(self.name.replace(extra="lowerTwistSkin"))
+        lower_twist_joints.indices = range(lower_twist.sample_count)
+        lower_twist_joints.nice_name = self.name.replace(extra="lowerTwist")
+        lower_twist_joints.external_structure = self.structure.structure
+        lower_twist_joints.in_mtxs.connect(self.lower_twist.out_mtxs)
+        lower_twist_joints.from_guides = False
+        lower_twist_joints.for_skinning = True
+        self.lower_twist_joints = self.add_module(lower_twist_joints)

@@ -1,4 +1,5 @@
 from maya import cmds
+from maya.api import OpenMaya
 
 from src.lib import naming, tags
 from src.lib.nodes import Node
@@ -68,7 +69,7 @@ def get_guide_node(name: naming.Name) -> Node:
     return Node(str(name.replace(suffix=GUIDE_TAG, extra=None)))
 
 
-def get_world_matrix(name: naming.Name) -> list[float]:
+def get_world_matrix(name: naming.Name) -> OpenMaya.MMatrix:
     """
     Return the worldMatrix of a node
     :param name:
@@ -78,6 +79,6 @@ def get_world_matrix(name: naming.Name) -> list[float]:
     guide_node = get_guide_node(name)
 
     if not guide_node.exists():
-        return DEFAULT_VALUE
+        return OpenMaya.MMatrix(DEFAULT_VALUE)
 
-    return get_guide_node(name).worldMatrix[0].value
+    return OpenMaya.MMatrix(get_guide_node(name).worldMatrix[0].value)

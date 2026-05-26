@@ -11,7 +11,6 @@ from src.lib.naming import Name
 from src.lib import joint
 from src.lib.nodes import Node
 from src.rig.snippets import ik
-
 from src.lib.math import matrix
 
 

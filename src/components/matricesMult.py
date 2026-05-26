@@ -1,7 +1,4 @@
-from maya import cmds
-
 from src.components._comp_base import MacroComponent
-from src.lib import naming
 from src.lib.nodes import Node
 from src.rig.module.deferred_plug import MATRIX, DeferredPlug
 

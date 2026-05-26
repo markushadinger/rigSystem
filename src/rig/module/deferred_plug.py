@@ -2,6 +2,9 @@ from src.lib.nodes import Plug, Node
 
 FLOAT = {"at": "float"}
 MATRIX = {"dt": "matrix"}
+INT8 = {"at": "byte"}
+INT16 = {"at": "short"}
+INT32 = {"at": "long"}
 
 PLUG_LIST = "_deferred_plug_defs"
 PLUG_INSTANCES = "_deferred_plug_instances"

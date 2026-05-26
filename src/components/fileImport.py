@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from maya import cmds
 
 from src.components._comp_base import Component
@@ -6,6 +8,7 @@ from src.lib import tags
 from src.lib.nodes import Node
 from src.lib.naming import Name
 from src.lib import guide
+from src.rig.module.deferred_plug import DeferredPlug, MATRIX
 
 
 class GuideFileImport(Component):
@@ -32,7 +35,26 @@ class GuideFileImport(Component):
 
         cmds.parent(root_nodes, self.node)
 
-
-
     def prepare(self):
         self.node = Node.create("transform", name=self.name, parent=self.context.rig_root_node)
+
+
+class ModelFileImport(Component):
+    in_parent_mtx = DeferredPlug("parent_mtx", "input", MATRIX)
+
+    def __init__(self, name: Name):
+        super().__init__(name)
+        self.version: int = -1
+        self.path: Path = Path()
+        self.meshes = []
+
+    def prepare(self):
+        super().prepare()
+
+        file_path = version.get_version_path(self.path, self.version)
+        print(f"Importing model from: {file_path}")
+
+        new_nodes = cmds.file(str(file_path), i=True, returnNewNodes=True)
+        new_shapes = [node for node in new_nodes if cmds.nodeType(node) == "mesh"]
+
+        self.meshes.extend([cmds.listRelatives(shape, parent=True)[0] for shape in new_shapes])

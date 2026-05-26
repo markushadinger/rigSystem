@@ -1,13 +1,9 @@
-import json
+from pathlib import Path
 
-from src.rig.context import Context
 from src.rig.data_manager import JsonDataManager
 from src.rig.controls import control, shape
 from src.architecture.builder import Builder
-
 from src.lib import naming
-
-from pathlib import Path
 
 
 def export_component_controls(component: str, export_path: Path) -> None:

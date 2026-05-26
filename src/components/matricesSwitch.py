@@ -1,4 +1,3 @@
-from maya import cmds
 from maya.api import OpenMaya
 
 from src.components._comp_base import MacroComponent

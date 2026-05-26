@@ -41,14 +41,15 @@ class ControlGenerator(MacroComponent):
         ctrl_count = len(self._control_deferred_plugs)
         self._control_deferred_plugs.append(dict(
             name=f"sep_{ctrl_count}",
-            nn="------",
+            nn=" ",
             at="enum",
             en=label,
             k=True,
         ))
 
-    def remove_attr(self, attr: str):
-        self._disabled_attributes.add(attr)
+    def remove_attr(self, *attr: str):
+        for a in attr:
+            self._disabled_attributes.add(a)
 
     def set_offset_system(self, system: OffsetSystem):
         self._offset_system = system
@@ -109,4 +110,3 @@ class ControlGenerator(MacroComponent):
             plug.lock = True
             plug.k = False
             plug.cb = False
-

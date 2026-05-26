@@ -13,8 +13,6 @@ from src.lib import guide
 from src.lib import naming
 from src.rig.controls import shape
 
-from maya import cmds
-
 
 class Component:
     def __init__(self, name):

@@ -3,12 +3,8 @@ from maya.api import OpenMaya
 
 from src.components._comp_base import MacroComponent
 from src.rig.module.deferred_plug import DeferredPlug, MATRIX
-from src.lib import guide
-from src.rig.controls import control
 from src.lib import naming
-from src.lib import joint
 from src.lib.nodes import Node
-from src.rig.snippets import ik
 from src.rig.snippets import surface
 from src.rig.snippets import pins
 
