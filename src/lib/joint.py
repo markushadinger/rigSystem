@@ -41,7 +41,7 @@ def create_chain(matrices: list, name: naming.Name, skin_joint=True) -> list[Nod
         jnt = create(replace(name, index=i), skin_joint)
 
         if ret:
-            cmds.parent(jnt, ret[-1])
+            cmds.parent(jnt, ret[-1], noInvScale=True)
         ret.append(jnt)
 
     for jnt, m in zip(ret, matrices):

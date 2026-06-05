@@ -6,7 +6,6 @@ from src.components.fileImport import GuideFileImport
 from src.components.fileImport import ModelFileImport
 from src.components.control import ControlGenerator
 from src.components.jointRenderer import JointRenderer
-from src.components.spaceSwitch import SpaceSwitch
 from src.components.matrixInverse import MatrixInverse
 from src.components.matricesMult import MatricesMult
 from src.assembly.biped_spine import BipedSpine
@@ -22,7 +21,16 @@ from src.rig.controls import shape
 
 from src.assembly import biped_arm
 
-STAGES_BUILD_FULL = ("prepare", "connect", "load_guides", "load_build_data", "build", "cleanup", "import_deformer")
+STAGES_BUILD_FULL = (
+    "prepare",
+    "connect",
+    "load_guides",
+    "load_build_data",
+    "build",
+    "cleanup",
+    "import_deformer",
+    "tpose"
+)
 
 builder = Builder("CharAndre")
 builder.context = Context("andre", r"P:\AndreJukeBox\assets", "character")

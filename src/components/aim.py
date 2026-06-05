@@ -1,8 +1,5 @@
-from maya.api import OpenMaya
-
 from src.components._comp_base import MacroComponent
 from src.rig.module.deferred_plug import DeferredPlug, MATRIX
-from src.lib import guide
 from src.lib import naming
 from src.lib.nodes import Node
 

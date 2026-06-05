@@ -1,11 +1,10 @@
+from maya.api import OpenMaya
+
 from src.components._comp_base import MacroComponent
 from src.lib import guide
 from src.lib.nodes import Node
-from src.lib.nodes import Plug
 from src.lib.naming import Name
 from src.rig.module.deferred_plug import MATRIX, DeferredPlug, FLOAT
-
-from maya.api import OpenMaya
 
 
 class MatrixBlend(MacroComponent):

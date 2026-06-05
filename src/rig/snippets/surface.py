@@ -1,7 +1,7 @@
 from maya import cmds
+from maya.api import OpenMaya
 
 from src.lib.nodes import Node, Plug
-from maya.api import OpenMaya
 
 
 def generate_placeholder_knots(u_count: int, v_count: int) -> list:

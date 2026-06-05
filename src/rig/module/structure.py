@@ -3,8 +3,6 @@ from src.lib.nodes import Node
 
 from src.lib import constants
 
-from maya import cmds
-
 
 class ModuleStructure:
     def __init__(self):

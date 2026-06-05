@@ -59,8 +59,10 @@ class Monitor:
             logger.info(f"{stage:.<{max_width + 4}}{stage_time:>8.3f}s")
 
             for module, time_taken in modules.items():
+                if time_taken < 0.001:
+                    continue
                 logger.info(f"  - {module:<{max_width}}{time_taken:>8.3f}s")
 
         end = "total:"
         time_taken = sum(self.stage_time_stamps.values())
-        logger.info(f"{end:.<{max_width +4 }}{time_taken:>8.3f}s")
+        logger.info(f"{end:.<{max_width + 4}}{time_taken:>8.3f}s")

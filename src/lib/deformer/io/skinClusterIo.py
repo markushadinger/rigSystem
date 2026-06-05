@@ -77,8 +77,6 @@ def save(data: dict, path: Path) -> None:
 
 def load(path: Path) -> dict:
     data = np.load(path)
-    print(data.files)
-
     logger.info(f"Loaded from {path.resolve()}")
 
     return {

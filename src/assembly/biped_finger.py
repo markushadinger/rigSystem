@@ -6,14 +6,12 @@ from src.components.matricesSwitch import MatricesSwitch
 from src.components.jointRenderer import JointRenderer
 from src.assembly.basic.fk_chain import FkChain
 from src.components._comp_base import Component
-from src.components.matrixBlend import MatrixBlend, MatrixNormalBlend
+from src.components.matrixBlend import MatrixNormalBlend
 from src.components.aim import Aim
 from src.components.matricesMult import MatricesMult
 from src.components.piston import Piston
-from src.components.spaceSwitch import SpaceSwitch
-from src.components.mathFloat import OneMinus, Max
+from src.components.mathFloat import OneMinus
 from src.rig.module.deferred_plug import DeferredPlug, MATRIX,FLOAT
-from src.components.line import Line
 
 from src.components import control, ik
 from src.lib import constants

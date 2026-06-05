@@ -1,6 +1,6 @@
 from maya import cmds
 
-from src.lib.nodes import Node
+from src.lib.nodes import Node, Plug
 from src.lib import naming
 
 ZERO = "zero"
@@ -39,7 +39,7 @@ class Stack:
 
         result = []
         for i in sorted(indices):
-            conns = (self._target.stack[i].get_out_connections() or [None])[0]
+            conns: Plug | None = (self._target.stack[i].get_out_connections() or [None])[0]
             if conns:
                 result.append(conns.node)
 
@@ -105,7 +105,7 @@ class Stack:
     def get_by_suffix(self, suffix: str) -> Node:
         for node in self.stack:
             if node.endswith(suffix):
-                return node
+                return Node(node)
 
 
 # =========================================================

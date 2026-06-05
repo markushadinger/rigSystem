@@ -1,4 +1,4 @@
-import math
+from typing import Callable
 
 from maya import cmds
 from maya.api import OpenMaya
@@ -10,9 +10,8 @@ from src.lib.nodes import Node
 from src.rig.snippets import surface
 from src.rig.snippets import pins
 
-# import numpy
 
-from typing import Callable
+# import numpy
 
 
 class Ribbon(MacroComponent):

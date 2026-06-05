@@ -148,7 +148,7 @@ class BipedArm(builder.Builder):
         self.ik_pole.index = self.INDICES[1]
         self.ik_pole.set_offset_system(self.pole_offset)
         self.ik_pole.default_shape = shape.ShapeData(
-            points=shape.scale(shape.translate(shape.PYRAMID, [0, -1, 0]), [2, -2, 2]),
+            points=shape.scale(shape.CUBE, [2, 2, 2]),
             color=self.color,
             degree=1
         )

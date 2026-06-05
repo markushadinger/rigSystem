@@ -1,10 +1,6 @@
-from maya import cmds
-
 from src.components._comp_base import Component
 from src.lib import naming
 from src.rig.module.deferred_plug import FLOAT, DeferredPlug
-from src.lib import joint
-from src.lib import guide
 from src.lib.nodes import Node
 
 

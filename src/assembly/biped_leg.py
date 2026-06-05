@@ -1,7 +1,8 @@
+from maya.api import OpenMaya
+
 from src.architecture import builder
-
+from src.components.offset_systems.ankleIkOffsetSystem import AnkleIkOffsetSystem
 from src.components.offset_systems.poleVectorOffsetSystem import PoleVectorOffsetSystem
-
 from src.components.matricesSwitch import MatricesSwitch
 from src.components.jointRenderer import JointRenderer
 from src.assembly.basic.fk_chain import FkChain
@@ -13,10 +14,8 @@ from src.components.spaceSwitch import SpaceSwitch
 from src.components.mathFloat import OneMinus, Max
 from src.rig.module.deferred_plug import DeferredPlug, MATRIX
 from src.components.line import Line
-
 from src.components import control, ik
 from src.lib import constants
-
 from src.lib.naming import Name
 from src.rig.controls import shape
 
@@ -25,7 +24,6 @@ class BipedLeg(builder.Builder):
     INDICES = ["leg", "knee", "ankle", "ball", "toe"]
 
     def __init__(self, name: Name):
-
         super().__init__(name)
 
         self.color = shape.SIDE_COLOR[self.name.side]
@@ -106,7 +104,14 @@ class BipedLeg(builder.Builder):
         self.ik_spsw.translation = True
         self.add_module(self.ik_spsw)
 
+        ik_offset = AnkleIkOffsetSystem(self.name.replace(extra="tPoseOffset"))
+        ik_offset.aim_vector = OpenMaya.MVector.kYaxisVector
+        ik_offset.aim_axis = "y"
+        ik_offset.up_axis = "z"
+        ik_offset.hip_index = self.INDICES[0]
+
         self.ik_handle = control.ControlGenerator(self.name.replace(extra="ik", index=self.INDICES[2]))
+        self.ik_handle.set_offset_system(ik_offset)
         self.ik_handle.in_parent_mtx.connect(self.ik_spsw.out_mtx)
         self.ik_handle.in_visibility.connect(self.ik_vis.out_flt)
         self.ik_handle.index = self.INDICES[2]
@@ -167,13 +172,11 @@ class BipedLeg(builder.Builder):
         self.ik_pole.index = self.INDICES[1]
         self.ik_pole.set_offset_system(self.pole_offset)
         self.ik_pole.default_shape = shape.ShapeData(
-            points=shape.scale(shape.translate(shape.PYRAMID, [0, -1, 0]), [2, -2, 2]),
+            points=shape.scale(shape.CUBE, [2, 2, 2]),
             color=self.color,
             degree=1
         )
-        for attr in "rs":
-            for axis in "xyz":
-                self.ik_pole.remove_attr(attr + axis)
+        self.ik_pole.remove_attr(*constants.ATTR_R, *constants.ATTR_S)
         self.add_module(self.ik_pole)
 
         ik_stretch = ik.Stretch(self.name.replace(extra="ikStretch"))
@@ -266,3 +269,6 @@ class BipedLeg(builder.Builder):
 
         for mod in self.modules[1:]:
             mod.external_structure = self.structure.structure
+
+
+

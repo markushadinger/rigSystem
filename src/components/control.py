@@ -33,6 +33,7 @@ class ControlGenerator(MacroComponent):
         self._control_deferred_plugs: list[DeferredPlug] = []
         self._offset_system: OffsetSystem | None = None
         self._disabled_attributes: set[str] = set('v')
+        self.tpose_system: OffsetSystem | None = None
 
         self.in_visibility.settings["dv"] = 1
 
@@ -87,6 +88,10 @@ class ControlGenerator(MacroComponent):
         self.out_struct_mtx.plug.connect(struct_mmlt.matrixSum)
         self.out_world_mtx.plug.connect(self.control.worldMatrix[0])
         self.out_normalized_mtx.plug.connect(control.get_normalized_matrix_output(self.control))
+
+    def tpose(self):
+        if self.tpose_system:
+            self.tpose_system.build(self)
 
     def _build_custom_attributes(self):
         """

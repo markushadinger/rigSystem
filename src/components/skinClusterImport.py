@@ -3,17 +3,11 @@ from pathlib import Path
 from maya import cmds
 
 from src.components._comp_base import Component
-from src.lib.io import version
-from src.lib import tags
 from src.lib.nodes import Node
 from src.lib.naming import Name
-from src.lib import guide
 from src.rig.module.deferred_plug import DeferredPlug, MATRIX
-
 from src.lib.deformer.io import skinClusterIo
 from src.lib.io import version
-
-from pathlib import Path
 
 
 class SkinClusterImport(Component):
@@ -26,8 +20,6 @@ class SkinClusterImport(Component):
         self.meshes = []
 
     def import_deformer(self):
-        super().prepare()
-
         deformer_path = self.context.asset_path() / "deformer"
 
         for mesh in self.meshes:

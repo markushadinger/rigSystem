@@ -16,7 +16,7 @@ class Plug(str):
     @classmethod
     def from_string(cls, plug: str) -> "Plug":
         node, attr = plug.split(".", 1)
-        return Plug(node, attr)
+        return Plug(Node(node), attr)
 
     @property
     def name(self) -> str:

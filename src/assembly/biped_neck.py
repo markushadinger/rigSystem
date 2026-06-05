@@ -1,23 +1,16 @@
 from src.architecture import builder
 
-from src.components.offset_systems.poleVectorOffsetSystem import PoleVectorOffsetSystem
-
-from src.components.matricesSwitch import MatricesSwitch
 from src.components.jointRenderer import JointRenderer
-from src.assembly.basic.fk_chain import FkChain
 from src.components._comp_base import Component
-from src.components.footRoll import FootRoll
 from src.components.matricesMult import MatricesMult
 from src.components.piston import Piston
 from src.components.spaceSwitch import SpaceSwitch
-from src.components.mathFloat import OneMinus, Max
 from src.rig.module.deferred_plug import DeferredPlug, MATRIX
 from src.components.ribbon import RibbonSkin
 
 from src.components.matrixBlend import MatrixLocalBlend
 
-from src.components import control, ik
-from src.lib import constants
+from src.components import control
 
 from src.lib.naming import Name
 from src.rig.controls import shape
