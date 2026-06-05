@@ -10,6 +10,7 @@ from src.components.footRoll import FootRoll
 from src.components.matricesMult import MatricesMult
 from src.components.piston import Piston
 from src.components.spaceSwitch import SpaceSwitch
+from src.components.mathFloat import OneMinus, Max
 from src.rig.module.deferred_plug import DeferredPlug, MATRIX
 from src.components.line import Line
 
@@ -39,7 +40,7 @@ class BipedLeg(builder.Builder):
             degree=1)
 
         self.fk_shape = shape.ShapeData(
-            points=shape.rotate(shape.scale(shape.CIRCLE, 7), [0, 0, 90]),
+            points=shape.rotate(shape.scale(shape.CIRCLE, 10), [0, 0, 90]),
             color=self.color,
             degree=1)
 
@@ -55,8 +56,24 @@ class BipedLeg(builder.Builder):
         self.switch.external_structure = self.structure.structure
         self.switch.default_shape = self.switch_shape
         self.switch.remove_attr(*constants.ATTR_TRF)
-        self.fk_ik_attr = self.switch.add_attr("fk_ik", at="short", min=0, max=1, k=True)
+        self.fk_ik_attr = self.switch.add_attr("fk_ik", at="short", min=0, max=1, k=True, dv=1)
+        self.show_fk = self.switch.add_attr("show_fk", at="bool", k=False, dv=0)
+        self.show_ik = self.switch.add_attr("show_ik", at="bool", k=False, dv=0)
         self.add_module(self.switch)
+
+        self.fk_vis_invert = OneMinus(self.name.replace(extra="fkVisInvert"))
+        self.fk_vis_invert.in_flt.connect(self.fk_ik_attr)
+        self.add_module(self.fk_vis_invert)
+
+        self.fk_vis = Max(self.name.replace(extra="fkVis"))
+        self.fk_vis.in_flt.connect(self.fk_vis_invert.out_flt, dst_index=0)
+        self.fk_vis.in_flt.connect(self.show_fk, dst_index=1)
+        self.add_module(self.fk_vis)
+
+        self.ik_vis = Max(self.name.replace(extra="ikVis"))
+        self.ik_vis.in_flt.connect(self.fk_ik_attr, dst_index=0)
+        self.ik_vis.in_flt.connect(self.show_ik, dst_index=1)
+        self.add_module(self.ik_vis)
 
         self.fk_spsw = SpaceSwitch(self.name.replace(extra="fkSpSw"))
         self.fk_spsw.parent_mtx.connect(self.in_parent)
@@ -64,8 +81,11 @@ class BipedLeg(builder.Builder):
         self.fk_spsw.rotation = True
         self.add_module(self.fk_spsw)
 
+        # --- fk
+
         self.fk = FkChain(self.name.replace(extra="fk"))
         self.fk.in_mtx.connect(self.fk_spsw.out_mtx)
+        self.fk.in_visibility.connect(self.fk_vis.out_flt)
         self.fk.indices = self.INDICES
         self.fk.structure.external_structure = self.structure.structure
         self.fk.default_shape = self.fk_shape
@@ -88,6 +108,7 @@ class BipedLeg(builder.Builder):
 
         self.ik_handle = control.ControlGenerator(self.name.replace(extra="ik", index=self.INDICES[2]))
         self.ik_handle.in_parent_mtx.connect(self.ik_spsw.out_mtx)
+        self.ik_handle.in_visibility.connect(self.ik_vis.out_flt)
         self.ik_handle.index = self.INDICES[2]
         self.ik_handle.external_structure = self.structure.structure
         self.ik_handle.default_shape = shape.ShapeData(
@@ -141,6 +162,7 @@ class BipedLeg(builder.Builder):
 
         self.ik_pole = control.ControlGenerator(self.name.replace(extra="ik", index="pole"))
         self.ik_pole.in_parent_mtx.connect(self.in_global)
+        self.ik_pole.in_visibility.connect(self.ik_vis.out_flt)
         self.ik_pole.external_structure = self.structure.structure
         self.ik_pole.index = self.INDICES[1]
         self.ik_pole.set_offset_system(self.pole_offset)
@@ -179,6 +201,7 @@ class BipedLeg(builder.Builder):
         self.ik_line.external_structure = self.structure.structure
         self.ik_line.start_mtx.connect(self.ik_pole.out_world_mtx)
         self.ik_line.end_mtx.connect(self.ik.out_mtx, src_index=1)
+        self.ik_line.in_visibility.connect(self.ik_vis.out_flt)
         self.add_module(self.ik_line)
 
         self.blend = MatricesSwitch(self.name.replace(extra="blend"))
@@ -240,3 +263,6 @@ class BipedLeg(builder.Builder):
         lower_twist_joints.from_guides = False
         lower_twist_joints.for_skinning = True
         self.lower_twist_joints = self.add_module(lower_twist_joints)
+
+        for mod in self.modules[1:]:
+            mod.external_structure = self.structure.structure

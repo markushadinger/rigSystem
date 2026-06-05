@@ -1,4 +1,5 @@
 import math
+from typing import Callable
 
 from maya import cmds
 from maya.api import OpenMaya
@@ -33,12 +34,16 @@ class IK(MacroComponent):
 
         self._joints: list[Node] | None = None
 
+        self.in_stretch_flt.default_value = 1
+
+        self.tip_system: Callable[[IK], None] | None = None
+
     def build(self):
 
         self._build_chain()
 
         ik_handle, pole_constraint = ik.build_pole_ik(
-            name=self.name.replace(extra="ik"),
+            name=self.name.replace(suffix="ikh"),
             chain=self.joints,
             driver_plug=self.in_driver_mtx.plug,
             pole_plug=self.in_pole_mtx.plug
@@ -51,6 +56,9 @@ class IK(MacroComponent):
             self.out_mtx.plug[i].connect(jnt.worldMatrix[0])
 
         self._setup_stretch()
+
+        if self.tip_system:
+            self.tip_system(self)
 
     def _build_chain(self):
         """
@@ -110,17 +118,19 @@ class Stretch(MacroComponent):
 
         chain_length = Node.create("sum", self.name.replace(suffix="sum"))
         custom_indices = self.in_custom_stretch.plug.connected_indices()
-        mult_plugs = []
+
+        # set default length values
+        for i, d in enumerate(distances):
+            chain_length.input[i].value = d
+
         for i, index in enumerate(self.indices[1:]):
-            if i in custom_indices:
-                mult = Node.create("multiply", self.name.replace(suffix="mult", index=index))
-                mult.input[0].value = distances[i]
-                mult.input[1].connect(self.in_custom_stretch.plug[i])
-                chain_length.input[i].connect(mult.output)
-                mult_plugs.append(mult.output)
-            else:
-                chain_length.input[i].value = distances
-                mult_plugs.append(None)
+            if i not in custom_indices:
+                continue
+
+            mult = Node.create("multiply", self.name.replace(suffix="mult", index=index))
+            mult.input[0].value = distances[i]
+            mult.input[1].connect(self.in_custom_stretch.plug[i])
+            chain_length.input[i].connect(mult.output)
 
         start_mmlt = Node.create("multMatrix", self.name.replace(suffix="mmlt", index="start"))
         start_mmlt.matrixIn[0].value = guide_matrices[0]
@@ -214,3 +224,11 @@ class LockTipSystem:
         rot = Node.create("rotationFromMatrix", name=component.name.replace(suffix="mrot"))
         rot.input.connect(mmlt.matrixSum)
         tip_jnt.rotate.connect(rot.output)
+
+
+class AimTipSystem:
+
+    def build(self, component: IK):
+        end_joint = component.joints[-1]
+
+        Node.create("aimMatrix")

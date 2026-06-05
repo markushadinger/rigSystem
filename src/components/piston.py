@@ -24,6 +24,7 @@ class Piston(MacroComponent):
     in_end_mtx = DeferredPlug("end_mtx", "input", MATRIX)
 
     out_mtxs = DeferredPlug("end_orient", "output", MATRIX, multi=True)
+    out_norm_mtxs = DeferredPlug("end_orient", "output", MATRIX, multi=True)
 
     def __init__(self, name: naming.Name):
         super().__init__(name)
@@ -93,16 +94,29 @@ class Piston(MacroComponent):
             blend_trf.input1.value = [factors[i]] * 3
             blend_trf.input2.connect(decompose_local_end.ot)
 
-            blend_rx = Node.create("multiply", self.name.replace(index=i, suffix="rBlend"))
-            blend_rx.input[0].value = factors[i]
-            blend_rx.input[1].connect(decompose_local_end.orx)
+            blend_r = Node.create("multiply", self.name.replace(index=i, suffix="rBlend"))
+            blend_r.input[0].value = factors[i]
+            blend_r.input[1].connect(
+                {
+                    "x": decompose_local_end.orx,
+                    "y": decompose_local_end.ory,
+                    "z": decompose_local_end.orz,
+                }[self.aim_vector])
 
             compose_mtx = Node.create("composeMatrix", self.name.replace(index=i, suffix="comp"))
             compose_mtx.it.connect(blend_trf.output)
-            compose_mtx.irx.connect(blend_rx.output)
+            {
+                "x": compose_mtx.irx,
+                "y": compose_mtx.iry,
+                "z": compose_mtx.irz,
+            }[self.aim_vector].connect(blend_r.output)
 
-            blend_mtx = Node.create("multMatrix", self.name.replace(suffix="mmlt", index="localEnd"))
+            blend_mtx = Node.create("multMatrix", self.name.replace(suffix="mmlt", index=i))
             blend_mtx.matrixIn[0].connect(compose_mtx.outputMatrix)
             blend_mtx.matrixIn[1].connect(start_aim_mtx.outputMatrix)
-
             self.out_mtxs.plug[i].connect(blend_mtx.matrixSum)
+
+            norm_mmlt = Node.create("multMatrix", self.name.replace(index=i, suffix="normMmlt"))
+            norm_mmlt.matrixIn[0].value = OpenMaya.MMatrix(blend_mtx.matrixSum.value).inverse()
+            norm_mmlt.matrixIn[1].connect(blend_mtx.matrixSum)
+            self.out_norm_mtxs.plug[i].connect(norm_mmlt.matrixSum)

@@ -3,7 +3,6 @@ from pathlib import Path
 
 from src.lib.logger import logger
 
-
 def export_json(data: dict, path: Path) -> None:
     """
     Export data to a JSON file.

@@ -8,13 +8,14 @@ from src.lib.nodes import Node
 from src.rig.controls import shape
 from src.rig.stack import Stack, ZERO
 from src.rig.controls import control
-from src.rig.module.deferred_plug import DeferredPlug, MATRIX
+from src.rig.module.deferred_plug import DeferredPlug, MATRIX, BOOL
 from src.lib import guide
 from src.components.offset_systems import OffsetSystem
 
 
 class ControlGenerator(MacroComponent):
     in_parent_mtx = DeferredPlug("in_parent_mtx", "input", MATRIX)
+    in_visibility = DeferredPlug("in_visibility", "input", BOOL)
     out_local_mtx = DeferredPlug("out_local_mtx", "output", MATRIX)
     out_struct_mtx = DeferredPlug("out_struct_mtx", "output", MATRIX)
     out_world_mtx = DeferredPlug("out_world_mtx", "output", MATRIX)
@@ -28,9 +29,12 @@ class ControlGenerator(MacroComponent):
         self.index: str | None = None
         self.control: Node | None = None
         self.stack: Stack | None = None
+        self.zero: Node | None
         self._control_deferred_plugs: list[DeferredPlug] = []
         self._offset_system: OffsetSystem | None = None
         self._disabled_attributes: set[str] = set('v')
+
+        self.in_visibility.settings["dv"] = 1
 
     def add_attr(self, name: str, **kwargs) -> DeferredPlug:
         plug = DeferredPlug(name, "output", kwargs)
@@ -62,20 +66,12 @@ class ControlGenerator(MacroComponent):
                 plug.build_plug(self.structure.output)
 
     def build(self):
-        shape_data = self.shape_data.get(self.name.replace(index=self.index),
-                                         dataclasses.asdict(self.default_shape) if self.default_shape else None)
-        matrix_data = guide.get_world_matrix(self.name.replace(index=self.index))
 
-        self.control = control.build(self.name)
+        self._build_control()
+        self._add_stack()
+
         if self.has_shape:
-            control.add_shape_from_dict(self.control, shape_data)
-        cmds.xform(self.control, worldSpace=True, matrix=matrix_data)
-
-        self.stack = Stack(self.control)
-        zero = self.stack.add(ZERO)
-        cmds.parent(zero, self.structure.controls)
-
-        zero.offsetParentMatrix.connect(self.in_parent_mtx.plug)
+            self._add_shape()
 
         if self._offset_system:
             self._offset_system.build(self.control)
@@ -85,7 +81,7 @@ class ControlGenerator(MacroComponent):
 
         struct_mmlt = Node.create("multMatrix", name=self.name.replace(suffix="mmlt"))
         struct_mmlt.matrixIn[0].connect(self.control.worldMatrix[0])
-        struct_mmlt.matrixIn[1].connect(zero.worldInverseMatrix[0])
+        struct_mmlt.matrixIn[1].connect(self.zero.worldInverseMatrix[0])
 
         self.out_local_mtx.plug.connect(self.control.matrix)
         self.out_struct_mtx.plug.connect(struct_mmlt.matrixSum)
@@ -101,12 +97,52 @@ class ControlGenerator(MacroComponent):
             if isinstance(deferred_plug, DeferredPlug):
                 new_attr = self.control.add_attr(deferred_plug.name, **deferred_plug.settings)
                 deferred_plug.plug.connect(new_attr)
+                new_attr.cb = deferred_plug.settings.get("cb", True)
+                new_attr.k = deferred_plug.settings.get("k", True)
             else:
                 self.control.add_attr(**deferred_plug)
 
     def _remove_attributes(self):
+        """
+        removes an attribute from the control,
+        by locking, hiding and making it unkeyable
+        :return:
+        """
         for attr in self._disabled_attributes:
             plug = getattr(self.control, attr)
             plug.lock = True
             plug.k = False
             plug.cb = False
+
+    def _build_control(self):
+        """
+        Creates the control transform node and connects the visibilites.
+        positions it correct
+        :return:
+        """
+        matrix_data = guide.get_world_matrix(self.name.replace(index=self.index))
+
+        self.control = control.build(self.name)
+        cmds.xform(self.control, worldSpace=True, matrix=matrix_data)
+
+        self.control.visibility.connect(self.in_visibility.plug)
+
+    def _add_shape(self):
+        """
+        Adds a shape to the control
+        :return:
+        """
+        default_data = dataclasses.asdict(self.default_shape) if self.default_shape else None
+        shape_data = self.shape_data.get(self.name.replace(index=self.index), default_data)
+        control.add_shape_from_dict(self.control, shape_data)
+
+    def _add_stack(self):
+        """
+        Adds the stack to the control
+        :return:
+        """
+        self.stack = Stack(self.control)
+        self.zero = self.stack.add(ZERO)
+        cmds.parent(self.zero, self.structure.controls)
+
+        self.zero.offsetParentMatrix.connect(self.in_parent_mtx.plug)

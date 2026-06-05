@@ -17,11 +17,11 @@ class BipedSpine(builder.Builder):
         super().__init__(name)
 
         self.color = shape.SIDE_COLOR[self.name.side]
-        self.spine_shape = shape.ShapeData(points=shape.scale(shape.CIRCLE, 15), color=self.color, degree=1)
-        self.hip_shape = shape.ShapeData(points=shape.scale(shape.CIRCLE, 15), color=shape.COLOR_GREEN, degree=1)
+        self.spine_shape = shape.ShapeData(points=shape.scale(shape.CIRCLE, 20), color=self.color, degree=1)
+        self.hip_shape = shape.ShapeData(points=shape.scale(shape.CIRCLE, 20), color=shape.COLOR_GREEN, degree=1)
 
         self.hip_indices = ["hip0", "hip1"]
-        self.spine_indices = list(range(4))
+        self.spine_indices = [0, 1, 2, "end"]
 
         self.color = shape.SIDE_COLOR[self.name.side]
         self.ik_shape = shape.ShapeData(points=shape.scale(shape.CUBE, 5), color=self.color, degree=1)
@@ -37,12 +37,6 @@ class BipedSpine(builder.Builder):
         self.out_local_end = self.structure.add_deferred_plug(DeferredPlug("out_local_end", "input", MATRIX))
         self.out_mtxs = self.structure.add_deferred_plug(DeferredPlug("out_mtxs", "input", MATRIX, multi=True))
         self.add_module(self.structure)
-
-        # self.switch = control.ControlGenerator(self.name.replace(extra="switch"))
-        # self.switch.index = self.INDICES[-1]
-        # self.switch.external_structure = self.structure.structure
-        # fk_ik_plug = self.switch.add_attr("fk_ik", dict(at="short", min=0, max=1, k=True))
-        # self.add_module(self.switch)
 
         self.fk = FkChain(self.name.replace(extra="fk"))
         self.fk.default_shape = self.spine_shape

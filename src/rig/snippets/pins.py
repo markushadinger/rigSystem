@@ -11,9 +11,14 @@ class ConnectionType(Enum):
     TRANSLATE = 2
 
 
-def create_orig_shape(shape: Node) -> Node:
-    shape = cmds.duplicate(shape, name=f"{shape}Orig")[0]
-    return Node(shape)
+def get_orig_shape_plug(shape: Node) -> Plug:
+    create_plug = Plug(shape, "create")
+    in_plug = create_plug.get_in_connection()
+
+    if in_plug:
+        return in_plug
+
+    return Plug.from_string(cmds.deformableShape(shape, createOriginalGeometry=True)[0])
 
 
 class UvPinBuilder:
@@ -30,11 +35,11 @@ class UvPinBuilder:
         if not self.surface_shape:
             raise ValueError("Surface shape is not set.")
 
-        og_shape = create_orig_shape(self.surface_shape)
+        orig_plug = get_orig_shape_plug(self.surface_shape)
 
         self.out_pin = Node.create("uvPin", name=f"{self.name}_uvPin")
         self.out_pin.deformedGeometry.connect(self.surface_shape.worldSpace[0])
-        self.out_pin.originalGeometry.connect(og_shape.worldSpace[0])
+        self.out_pin.originalGeometry.connect(orig_plug)
 
 
 class UvPinTransformDriver:

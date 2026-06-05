@@ -1,7 +1,7 @@
 from src.architecture import builder
 
 from src.components._comp_base import Component
-from src.rig.module.deferred_plug import DeferredPlug, MATRIX
+from src.rig.module.deferred_plug import DeferredPlug, MATRIX, BOOL
 
 from src.components.control import ControlGenerator
 
@@ -20,6 +20,7 @@ class FkChain(builder.Builder):
 
         self.structure = Component(self.name)
         self.in_mtx = self.structure.add_deferred_plug(DeferredPlug("in_mtx", "input", MATRIX))
+        self.in_visibility = self.structure.add_deferred_plug(DeferredPlug("in_visibility", "input", BOOL))
         self.out_mtx = self.structure.add_deferred_plug(DeferredPlug("out_mtx", "output", MATRIX, multi=True))
         self.out_normalized_mtx = self.structure.add_deferred_plug(
             DeferredPlug("out_norm_mtx", "output", MATRIX, multi=True))
@@ -35,6 +36,7 @@ class FkChain(builder.Builder):
             fk.has_shape = index not in self.indices_without_shape
             fk.external_structure = self.structure.structure
             fk.in_parent_mtx.connect(parent_plug)
+            fk.in_visibility.connect(self.in_visibility)
             self.add_module(fk)
             self.fk_modules.append(fk)
 

@@ -2,6 +2,7 @@ from src.lib.nodes import Plug, Node
 
 FLOAT = {"at": "float"}
 MATRIX = {"dt": "matrix"}
+BOOL = {"at": "bool", "dv": True}
 INT8 = {"at": "byte"}
 INT16 = {"at": "short"}
 INT32 = {"at": "long"}
@@ -101,6 +102,14 @@ class DeferredPlug:
                 continue
 
             self.plug[dst_index].connect(src_plug)
+
+    @property
+    def default_value(self) -> float:
+        return self.settings.get("dv", 0)
+
+    @default_value.setter
+    def default_value(self, v):
+        self.settings["dv"] = v
 
 
 def init_deferred_plugs(component):

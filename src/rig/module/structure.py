@@ -1,6 +1,10 @@
 from src.lib import naming
 from src.lib.nodes import Node
 
+from src.lib import constants
+
+from maya import cmds
+
 
 class ModuleStructure:
     def __init__(self):
@@ -25,7 +29,7 @@ class ModuleStructure:
 
         if not is_module_parent:
             self.root = Node.create("transform", name=name, parent=parent)
-            self.guides = Node.create("transform", name=name.replace(suffix="guides"), parent=self.root)
+            # self.guides = Node.create("transform", name=name.replace(suffix="guides"), parent=self.root)
             self.input = Node.create("transform", name=name.replace(suffix="input"), parent=self.root)
             self.logic = Node.create("transform", name=name.replace(suffix="logic"), parent=self.root)
             self.controls = Node.create("transform", name=name.replace(suffix="controls"), parent=self.root)
@@ -34,7 +38,7 @@ class ModuleStructure:
 
         else:
             self.root = parent.root
-            self.guides = parent.guides
+            # self.guides = parent.guides
             self.input = Node.create("transform", name=name.replace(suffix="input"), parent=parent.input)
             self.logic = parent.logic
             self.controls = parent.controls
@@ -43,18 +47,17 @@ class ModuleStructure:
 
         for group in [
             self.root,
-            self.guides,
+            # self.guides,
             self.output,
             self.input,
             self.controls,
             self.logic,
             self.deform,
         ]:
-            for attr in "trs":
-                for axis in "xyz":
-                    attribute = attr + axis
-                    getattr(group, attribute).lock = True
-                    getattr(group, attribute).k = False
-                    getattr(group, attribute).cb = False
+            for attr in constants.ATTR_TRF:
+                plug = getattr(group, attr)
+                plug.lock = True
+                plug.k = False
+                plug.cb = False
 
             group.inheritsTransform.value = False

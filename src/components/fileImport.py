@@ -47,6 +47,7 @@ class ModelFileImport(Component):
         self.version: int = -1
         self.path: Path = Path()
         self.meshes = []
+        self.root_nodes = []
 
     def prepare(self):
         super().prepare()
@@ -54,7 +55,15 @@ class ModelFileImport(Component):
         file_path = version.get_version_path(self.path, self.version)
         print(f"Importing model from: {file_path}")
 
-        new_nodes = cmds.file(str(file_path), i=True, returnNewNodes=True)
-        new_shapes = [node for node in new_nodes if cmds.nodeType(node) == "mesh"]
+        imported_nodes = cmds.file(str(file_path), i=True, returnNewNodes=True)
 
-        self.meshes.extend([cmds.listRelatives(shape, parent=True)[0] for shape in new_shapes])
+        imported_shapes = [node for node in imported_nodes if cmds.nodeType(node) == "mesh"]
+        imported_transforms = [node for node in imported_nodes if cmds.nodeType(node) == "transform"]
+
+        self.meshes.extend([cmds.listRelatives(shape, parent=True)[0] for shape in imported_shapes])
+
+        self.root_nodes = [n for n in imported_transforms if not cmds.listRelatives(n, parent=True)]
+
+        for n in self.root_nodes:
+            node = Node(n)
+            node.offsetParentMatrix.connect(self.in_parent_mtx.plug)

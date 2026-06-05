@@ -13,7 +13,7 @@ class SpaceSwitch(MacroComponent):
 
     def __init__(self, name: naming.Name):
         super().__init__(name)
-        self.index: str = ""
+        self.index: str | None = None
         self.rotation: bool = False
         self.translation: bool = False
         self.scale: bool = False
