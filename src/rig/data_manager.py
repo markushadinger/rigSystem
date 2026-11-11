@@ -3,7 +3,7 @@ import logging
 
 from maya.api import OpenMaya
 
-from src.lib.io import version as version_lib
+from src.lib import version as version_lib
 from src.lib.io import json
 from src.lib.naming import Name
 

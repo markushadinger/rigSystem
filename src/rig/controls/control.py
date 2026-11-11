@@ -14,7 +14,7 @@ OFFSET_MLT_INDEX = 9
 
 
 def build(name: naming.Name) -> Node:
-    control = Node.create("transform", name=str(name.replace(suffix=SUFFIX)))
+    control = Node(name.replace(suffix=SUFFIX)).create("transform")
     tags.add_tag(control, CONTROL_TAG)
     tags.add_component_tag(control, name.component_name)
     # cmds.controller(control)
@@ -31,17 +31,17 @@ def add_shape_from_dict(control: Node, shape_data: dict):
 
 
 def build_offset_network(control: Node):
-    cmds.addAttr(control, longName="inParentMatrix", attributeType="matrix")
-    cmds.addAttr(control, longName="inOffsetMatrix", attributeType="matrix")
+    control.add_attribute("inParentMatrix", attributeType="matrix")
+    control.add_attribute("inOffsetMatrix", attributeType="matrix")
 
-    mlt = Node.create("multMatrix", name=f"{control}_hierarchy_mlt")
+    mlt = Node(f"{control}_hierarchy_mlt").create("multMatrix")
     mlt.matrixIn[PARENT_MLT_INDEX].connect(control.inParentMatrix)
     mlt.matrixIn[OFFSET_MLT_INDEX].connect(control.inOffsetMatrix)
     control.offsetParentMatrix.connect(mlt.matrixSum)
 
 
 def get_normalized_matrix_output(control: Node) -> Plug:
-    mlt = Node.create("multMatrix", name=f"{control}_normalized_mlt")
+    mlt = Node(f"{control}_normalized_mlt").create("multMatrix")
     mlt.matrixIn[0].value = control.worldInverseMatrix[0].value
     mlt.matrixIn[1].connect(control.worldMatrix[0])
     return mlt.matrixSum

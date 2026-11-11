@@ -17,14 +17,23 @@ class Context:
     def component_path(self, module_name: str | Name) -> Path:
         return self.asset_path() / "modules" / str(module_name)
 
-    def guide_path(self, module_name: str | Name) -> Path:
-        return self.component_path(str(module_name)) / "guides"
-
-    def guide_file_path(self, module_name: str | Name) -> Path:
-        return self.guide_path(str(module_name)) / "guides.json"
-
     def shapes_path(self, module_name: str | Name) -> Path:
         return self.component_path(str(module_name)) / "shapes"
 
     def shapes_file_path(self, module_name: str | Name) -> Path:
         return self.shapes_path(str(module_name)) / "controls.json"
+
+    def data_path(self) -> Path:
+        return self.asset_path() / "data"
+
+    def skeleton_path(self) -> Path:
+        return self.data_path() / "skeleton" / "skeleton.ma"
+
+    def guide_path(self) -> Path:
+        return self.data_path() / "guides" / "guides.ma"
+
+    def get_deformer_path(self) -> Path:
+        return self.data_path() / "deformer"
+
+    def get_mesh_deformer_path(self, mesh, deformer) -> Path:
+        return self.get_deformer_path() / mesh / deformer

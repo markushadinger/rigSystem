@@ -59,6 +59,7 @@ class BipedNeck(builder.Builder):
 
         self.head_ctrl = control.ControlGenerator(self.name.replace(extra=self.INDICES[-1]))
         self.head_ctrl.index = self.INDICES[-1]
+        self.head_ctrl.orient_to_world = True
         self.head_ctrl.in_parent_mtx.connect(self.head_spsw.out_mtx)
         self.head_ctrl.external_structure = self.structure.structure
         self.head_ctrl.default_shape = shape.ShapeData(
@@ -80,26 +81,26 @@ class BipedNeck(builder.Builder):
         self.twist.end_up_axis = "x"
         self.twist.start_up_axis = "x"
         self.twist.external_structure = self.structure.structure
-        self.twist.in_start_mtx.connect(self.in_parent)
-        self.twist.in_end_mtx.connect(self.head_ctrl.out_normalized_mtx)
+        # self.twist.in_start_mtx.connect(self.in_parent)
+        # self.twist.in_end_mtx.connect(self.head_ctrl.out_normalized_mtx)
         self.add_module(self.twist)
 
         self.head_blend = MatrixLocalBlend(self.name.replace(extra="headBlend"))
         self.head_blend.external_structure = self.structure.structure
-        self.head_blend.in_mtx.connect(self.twist.out_mtxs, src_index=self.twist.sample_count - 1)
+        # self.head_blend.in_mtx.connect(self.twist.out_mtxs, src_index=self.twist.sample_count - 1)
         self.head_blend.in_blend.connect(self.head_ctrl.out_world_mtx)
         self.head_blend.in_blend_rotate.connect(self.neck_follow_head_attr)
         self.add_module(self.head_blend)
 
         self.localize_twist = MatricesMult(self.name.replace(extra="local"))
         self.localize_twist.external_structure = self.structure.structure
-        self.localize_twist.in_mtxs.connect(self.twist.out_mtxs, src_index=0, dst_index=0)
+        # self.localize_twist.in_mtxs.connect(self.twist.out_mtxs, src_index=0, dst_index=0)
         self.localize_twist.in_mtxs.connect(self.head_blend.out_mtx, dst_index=1)
         self.localize_twist.in_parent_mtx.connect(self.in_localize)
         self.add_module(self.localize_twist)
 
         self.ribbon = RibbonSkin(self.name.replace(extra="ribbon"))
-        self.ribbon.in_mtx.connect(self.localize_twist.out_mtxs)
+        # self.ribbon.in_mtx.connect(self.localize_twist.out_mtxs)
         self.ribbon.external_structure = self.structure.structure
         self.ribbon.sample_points = 5
         self.ribbon.u_knot_count = 5
@@ -110,7 +111,7 @@ class BipedNeck(builder.Builder):
         self.twist_joints.indices = range(self.ribbon.sample_points)
         self.twist_joints.nice_name = self.name.replace(extra="twist")
         self.twist_joints.external_structure = self.structure.structure
-        self.twist_joints.in_mtxs.connect(self.ribbon.out_mtx)
+        # self.twist_joints.in_mtxs.connect(self.ribbon.out_mtx)
         self.twist_joints.from_guides = False
         self.twist_joints.for_skinning = True
         self.add_module(self.twist_joints)

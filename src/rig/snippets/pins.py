@@ -37,7 +37,7 @@ class UvPinBuilder:
 
         orig_plug = get_orig_shape_plug(self.surface_shape)
 
-        self.out_pin = Node.create("uvPin", name=f"{self.name}_uvPin")
+        self.out_pin = Node(f"{self.name}_uvPin").create("uvPin")
         self.out_pin.deformedGeometry.connect(self.surface_shape.worldSpace[0])
         self.out_pin.originalGeometry.connect(orig_plug)
 
@@ -70,7 +70,7 @@ class UvPinTransformDriver:
                     continue
 
                 case ConnectionType.DECOMPOSED:
-                    decomp = Node.create("decomposeMatrix", name=f"{transform}_decomp")
+                    decomp = Node(f"{transform}_decomp").create("decomposeMatrix")
                     self.pin.outputMatrix[i].connect(decomp.inputMatrix)
 
                     transform.translate.connect(decomp.outputTranslate)

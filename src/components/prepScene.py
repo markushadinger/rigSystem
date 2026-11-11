@@ -8,6 +8,7 @@ class PrepSceneComponent(Component):
     def __init__(self, name):
         super().__init__(name)
 
+
     def prepare(self):      
         cmds.file(new=True, force=True)
-        self.context.rig_root_node = Node(cmds.createNode("transform", name=f"rig"))
+        # self.context.rig_root_node = Node(cmds.createNode("transform", name=f"rig"))

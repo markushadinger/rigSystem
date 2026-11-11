@@ -13,7 +13,7 @@ class MatricesMult(MacroComponent):
         for index in self.in_mtxs.plug.connected_indices():
             in_plug = self.in_mtxs.plug[index]
 
-            mmlt_node = Node.create("multMatrix", self.name.replace(suffix="mmlt", index=index))
+            mmlt_node = Node(self.name.replace(suffix="mmlt", index=index)).create("multMatrix")
             mmlt_node.matrixIn[0].connect(in_plug)
             mmlt_node.matrixIn[1].connect(self.in_parent_mtx.plug)
             self.out_mtxs.plug[index].connect(mmlt_node.matrixSum)

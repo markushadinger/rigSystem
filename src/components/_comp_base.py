@@ -1,6 +1,5 @@
+from src.lib.nodes import Node, Plug
 from src.rig.module.deferred_plug import DeferredPlug
-from src.rig.module.deferred_plug import build_deferred_plugs
-from src.rig.module.deferred_plug import connect_deferred_plugs
 from src.rig.module.deferred_plug import init_deferred_plugs
 from src.rig.module.deferred_plug import PLUG_INSTANCES
 from src.rig.context import Context
@@ -13,60 +12,69 @@ from src.lib import guide
 from src.lib import naming
 from src.rig.controls import shape
 
+LOGIC_GRP = "logic"
+CONTROL_GRP = "controls"
+
 
 class Component:
-    def __init__(self, name):
+    def __init__(self, name: Name):
         init_deferred_plugs(self)
         self.name: Name = name
+        self.component_node: Node | None = None
+        self._input: Node = Node(str(self.name.replace(suffix="input")))
+        self._output: Node = Node(str(self.name.replace(suffix="output")))
+        self._input_plugs: list[tuple[Plug, dict]] = list()
+        self._output_plugs: list[tuple[Plug, dict]] = list()
+
         self.context: Context | None = None
         self.structure: structure.ModuleStructure = structure.ModuleStructure()
         self.external_structure: structure.ModuleStructure | None = None
 
+    def register_input(self, name, **settings) -> Plug:
+        plug = Plug(self._input, name)
+        self._input_plugs.append((plug, settings))
+        return plug
+
+    def register_output(self, name, **settings) -> Plug:
+        plug = Plug(self._output, name)
+        self._output_plugs.append((plug, settings))
+        return plug
+
+    def build_sort_group(self, name:str):
+        if not self.component_node:
+            self.component_node = Node.create()
+
     def prepare(self):
-        parent = self.external_structure or self.context.rig_root_node
-        self.structure.build(self.name, parent)
-        build_deferred_plugs(self)
+        # build input and output node
+        self._input.create("simpleTestNode")
+        self._output.create("simpleTestNode")
+
+        for plug, settings in self._input_plugs:
+            self._input.add_attribute(plug.name, **settings)
+
+        for plug, settings in self._output_plugs:
+            self._output.add_attribute(plug.name, **settings)
 
     def connect(self):
-        connect_deferred_plugs(self)
+        for plug, _ in self._input_plugs:
+            plug.resolve_deferred()
 
     def add_deferred_plug(self, plug: DeferredPlug) -> DeferredPlug:
         getattr(self, PLUG_INSTANCES)[plug.name] = plug
         return plug
 
-    def cleanup(self):
-        for plug in getattr(self, PLUG_INSTANCES).values():
-            if plug.direction != "input":
-                continue
+    def build(self):
+        # clean up hooks before using them
 
-            if not plug.multi:
-                continue
+        for this_plug, _ in self._input_plugs:
+            other_plug = this_plug.get_in_connection()
 
-            out_indices = plug.plug.connected_indices()
-            in_plug = plug.plug.get_in_connection()
+            if this_plug.is_multi() and other_plug.is_multi():
+                this_plug.disconnect_in()
 
-            try:
-                for i in out_indices:
-                    plug.plug[i].connect(in_plug[i])
-            except:
-                pass
+                for i in other_plug.connected_indices():
+                    this_plug[i].connect(other_plug[i])
 
 
 class MacroComponent(Component):
-
-    def __init__(self, name):
-        super().__init__(name)
-
-        self.guide_version: int = -1
-        self.guide_data: GuideDataManager | None = GuideDataManager(self.name, guide.DEFAULT_VALUE)
-        self.shape_data: JsonDataManager | None = JsonDataManager(shape.DEFAULT_SHAPE_DATA)
-        self.filtered_indices: list[str] | None = None
-
-    @property
-    def local_indices(self) -> list[naming.Name]:
-        if not self.filtered_indices:
-            return self.guide_data.indices
-        return [self.name.replace(index=i) for i in self.filtered_indices]
-
-    def load_build_data(self):
-        self.shape_data.load_if_empty(self.context.shapes_file_path(self.name.component_name))
+    pass

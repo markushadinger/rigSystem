@@ -16,7 +16,7 @@ class MatrixBlend(MacroComponent):
     out_mtx = DeferredPlug("out", "output", MATRIX)
 
     def build(self):
-        blend_mtx = Node.create("blendMatrix", self.name.replace(index="local", suffix="mblend"))
+        blend_mtx = Node(self.name.replace(index="local", suffix="mblend")).create("blendMatrix")
         blend_mtx.inputMatrix.connect(self.in_mtx.plug)
         blend_mtx.target[0].targetMatrix.connect(self.in_blend.plug)
         blend_mtx.target[0].rotateWeight.connect(self.in_blend_rotate.plug)
@@ -33,21 +33,21 @@ class MatrixLocalBlend(MatrixBlend):
         self.maintain_offset: bool = True
 
     def build(self):
-        inverse_mtx = Node.create("inverseMatrix", self.name.replace(index="local", suffix="minv"))
+        inverse_mtx = Node(self.name.replace(index="local", suffix="minv")).create("inverseMatrix")
         inverse_mtx.inputMatrix.connect(self.in_mtx.plug)
 
-        local_mtx = Node.create("multMatrix", self.name.replace(index="local", suffix="mmlt"))
+        local_mtx = Node(self.name.replace(index="local", suffix="mmlt")).create("multMatrix")
         local_mtx.matrixIn[0].connect(self.in_blend.plug)
         local_mtx.matrixIn[1].connect(inverse_mtx.outputMatrix)
 
-        blend_mtx = Node.create("blendMatrix", self.name.replace(index="local", suffix="mblend"))
+        blend_mtx = Node(self.name.replace(index="local", suffix="mblend")).create("blendMatrix")
         blend_mtx.inputMatrix.value = local_mtx.matrixSum.value if self.maintain_offset else OpenMaya.MMatrix.kIdentity
         blend_mtx.target[0].targetMatrix.connect(local_mtx.matrixSum)
         blend_mtx.target[0].rotateWeight.connect(self.in_blend_rotate.plug)
         blend_mtx.target[0].translateWeight.connect(self.in_blend_translate.plug)
         blend_mtx.target[0].scaleWeight.connect(self.in_blend_scale.plug)
 
-        global_mtx = Node.create("multMatrix", self.name.replace(index="local", suffix="mmlt"))
+        global_mtx = Node(self.name.replace(index="local", suffix="mmlt")).create("multMatrix")
         global_mtx.matrixIn[0].connect(blend_mtx.outputMatrix)
         global_mtx.matrixIn[1].connect(self.in_mtx.plug)
 
@@ -64,22 +64,22 @@ class MatrixNormalBlend(MatrixBlend):
     def build(self):
         guide_mtx = guide.get_world_matrix(self.name.replace(index=self.index))
 
-        base_mtx = Node.create("multMatrix", self.name.replace(index="local", suffix="mmlt"))
+        base_mtx = Node(self.name.replace(index="local", suffix="mmlt")).create("multMatrix")
         base_mtx.matrixIn[0].value = guide_mtx
         base_mtx.matrixIn[1].connect(self.in_mtx.plug)
 
-        target_mtx = Node.create("multMatrix", self.name.replace(index="local", suffix="mmlt"))
+        target_mtx = Node(self.name.replace(index="local", suffix="mmlt")).create("multMatrix")
         target_mtx.matrixIn[0].value = guide_mtx
         target_mtx.matrixIn[1].connect(self.in_blend.plug)
 
-        blend_mtx = Node.create("blendMatrix", self.name.replace(index="local", suffix="mblend"))
+        blend_mtx = Node(self.name.replace(index="local", suffix="mblend")).create("blendMatrix")
         blend_mtx.inputMatrix.connect(base_mtx.matrixSum)
         blend_mtx.target[0].targetMatrix.connect(target_mtx.matrixSum)
         blend_mtx.target[0].rotateWeight.connect(self.in_blend_rotate.plug)
         blend_mtx.target[0].translateWeight.connect(self.in_blend_translate.plug)
         blend_mtx.target[0].scaleWeight.connect(self.in_blend_scale.plug)
 
-        global_mtx = Node.create("multMatrix", self.name.replace(index="local", suffix="mmlt"))
+        global_mtx = Node(self.name.replace(index="local", suffix="mmlt")).create("multMatrix")
         global_mtx.matrixIn[0].value = guide_mtx.inverse()
         global_mtx.matrixIn[1].connect(blend_mtx.outputMatrix)
 

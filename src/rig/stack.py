@@ -123,7 +123,7 @@ def _build_element(target: Node, suffix: str) -> Node:
     root_name = naming.strip_suffix(target)
     element_name = naming.get_name(root_name, suffix)
 
-    node = Node.create("transform", name=element_name)
+    node = Node(element_name).create("transform")
 
     # match transform
     cmds.xform(node, worldSpace=True, matrix=target.worldMatrix[0].value)

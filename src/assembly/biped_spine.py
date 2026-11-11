@@ -74,7 +74,7 @@ class BipedSpine(builder.Builder):
         self.add_module(self.localize_controls)
 
         self.ribbon = Ribbon(self.name.replace(extra="ribbon"))
-        self.ribbon.in_mtx.connect(self.localize_joints.out_mtxs)
+        # self.ribbon.in_mtx.connect(self.localize_joints.out_mtxs)
         self.ribbon.external_structure = self.structure.structure
         self.ribbon.flip_indices = list(range(len(self.hip_indices)))
         self.ribbon.sample_points = 10
@@ -85,7 +85,7 @@ class BipedSpine(builder.Builder):
         self.output_joints.indices = range(self.ribbon.sample_points)
         self.output_joints.nice_name = self.name
         self.output_joints.external_structure = self.structure.structure
-        self.output_joints.in_mtxs.connect(self.ribbon.out_mtx)
+        # self.output_joints.in_mtxs.connect(self.ribbon.out_mtx)
         self.output_joints.for_skinning = True
         self.output_joints.from_guides = False
         self.add_module(self.output_joints)
@@ -94,4 +94,4 @@ class BipedSpine(builder.Builder):
         self.out_end.connect(self.fk.out_normalized_mtx, src_index=len(self.spine_indices) - 1)
         self.out_local_start.connect(self.localize_controls.out_mtxs, src_index=0)
         self.out_local_end.connect(self.localize_controls.out_mtxs, src_index=1)
-        self.out_mtxs.connect(self.ribbon.out_normalized_mtx)
+        # self.out_mtxs.connect(self.ribbon.out_normalized_mtx)

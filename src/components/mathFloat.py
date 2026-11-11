@@ -12,7 +12,7 @@ class OneMinus(Component):
         super().__init__(name)
 
     def build(self):
-        invert = Node.create("floatMath", self.name.replace(suffix="sub"))
+        invert = Node(self.name.replace(suffix="sub")).create("floatMath")
         invert.floatA.value = 1
         invert.floatB.connect(self.in_flt.plug)
         invert.operation.value = 1  # sub
@@ -28,7 +28,7 @@ class BatchMath(Component):
     node_suffix = ""
 
     def build(self):
-        sum_node = Node.create(self.node_name, self.name.replace(suffix=self.node_suffix))
+        sum_node = Node(self.name.replace(suffix=self.node_suffix)).create(self.node_name)
         sum_node.input.connect(self.in_flt.plug)
         self.out_flt.plug.connect(sum_node.output)
 

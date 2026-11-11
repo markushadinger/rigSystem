@@ -29,11 +29,11 @@ class Aim(MacroComponent):
 
     def build(self):
 
-        up_axis = Node.create("axisFromMatrix", self.name.replace(suffix="axis"))
+        up_axis = Node(self.name.replace(suffix="axis")).create("axisFromMatrix")
         up_axis.input.connect(self.up_mtx.plug)
         up_axis.axis.value = "xyz".index(self.up_vector)
 
-        aim_mtx = Node.create("aimMatrix", self.name.replace(suffix="aim"))
+        aim_mtx = Node(self.name.replace(suffix="aim")).create("aimMatrix")
         aim_mtx.inputMatrix.connect(self.in_mtx.plug)
         aim_mtx.primaryTargetMatrix.connect(self.target_mtx.plug)
         aim_mtx.primaryInputAxis.value = VECTOR_MAPPING[self.aim_vector]

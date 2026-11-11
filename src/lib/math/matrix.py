@@ -42,3 +42,15 @@ def get_matrix_from_aim_up_pos(
         [rows[2].x, rows[2].y, rows[2].z, 0.0],
         [pos.x, pos.y, pos.z, 1.0],
     ])
+
+
+def replace_position(matrix: MMatrix, pos: MPoint | MVector) -> MMatrix:
+    ret_mtx = MMatrix(matrix)
+    ret_mtx[12] = pos[0]
+    ret_mtx[13] = pos[1]
+    ret_mtx[14] = pos[2]
+    return ret_mtx
+
+
+def position_from_matrix(matrix: MMatrix) -> MPoint:
+    return MPoint([matrix[12], matrix[13], matrix[14]])

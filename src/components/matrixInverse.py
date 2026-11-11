@@ -8,6 +8,6 @@ class MatrixInverse(MacroComponent):
     out_mtx = DeferredPlug("out", "output", MATRIX)
 
     def build(self):
-        inverse = Node.create("inverseMatrix", self.name.replace(suffix="minv"))
+        inverse = Node(self.name.replace(suffix="minv")).create("inverseMatrix")
         inverse.inputMatrix.connect(self.in_mtx.plug)
         self.out_mtx.plug.connect(inverse.outputMatrix)

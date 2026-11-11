@@ -2,7 +2,7 @@ from src.architecture.builder import Builder
 from src.architecture.builder_monitor import Monitor
 
 from src.components.prepScene import PrepSceneComponent
-from src.components.fileImport import GuideFileImport
+# from src.components.fileImport import GuideFileImport
 from src.components.fileImport import ModelFileImport
 from src.components.control import ControlGenerator
 from src.components.jointRenderer import JointRenderer
@@ -37,9 +37,9 @@ builder.context = Context("andre", r"P:\AndreJukeBox\assets", "character")
 
 builder.modules.append(PrepSceneComponent(Name("prepScene")))
 
-import_guides = GuideFileImport(Name("guides"))
-import_guides.version = -1
-builder.add_module(import_guides)
+# import_guides = GuideFileImport(Name("guides"))
+# import_guides.version = -1
+# builder.add_module(import_guides)
 
 placer = ControlGenerator(Name("placer"))
 placer.default_shape = shape.ShapeData(
@@ -65,6 +65,7 @@ builder.add_module(placer_inverse)
 
 root = ControlGenerator(Name("root", side="c"))
 root.in_parent_mtx.connect(placer.out_normalized_mtx)
+root.orient_to_world = True
 root.default_shape = shape.ShapeData(
     points=shape.scale(shape.CIRCLE, 25),
     color=shape.COLOR_YELLOW,

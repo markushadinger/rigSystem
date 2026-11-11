@@ -1,7 +1,5 @@
 import dataclasses
 
-from maya import cmds
-
 from src.components._comp_base import MacroComponent
 from src.lib.naming import Name
 from src.lib.nodes import Node
@@ -10,6 +8,7 @@ from src.rig.stack import Stack, ZERO
 from src.rig.controls import control
 from src.rig.module.deferred_plug import DeferredPlug, MATRIX, BOOL
 from src.lib import guide
+from src.lib import tree
 from src.components.offset_systems import OffsetSystem
 
 
@@ -33,9 +32,8 @@ class ControlGenerator(MacroComponent):
         self._control_deferred_plugs: list[DeferredPlug] = []
         self._offset_system: OffsetSystem | None = None
         self._disabled_attributes: set[str] = set('v')
-        self.tpose_system: OffsetSystem | None = None
-
         self.in_visibility.settings["dv"] = 1
+        self.orient_to_world: bool = False
 
     def add_attr(self, name: str, **kwargs) -> DeferredPlug:
         plug = DeferredPlug(name, "output", kwargs)
@@ -74,13 +72,16 @@ class ControlGenerator(MacroComponent):
         if self.has_shape:
             self._add_shape()
 
+        if self.orient_to_world:
+            tree.reset_orientation(self.zero)
+
         if self._offset_system:
             self._offset_system.build(self.control)
 
         self._build_custom_attributes()
         self._remove_attributes()
 
-        struct_mmlt = Node.create("multMatrix", name=self.name.replace(suffix="mmlt"))
+        struct_mmlt = Node(self.name.replace(suffix="mmlt")).create("multMatrix")
         struct_mmlt.matrixIn[0].connect(self.control.worldMatrix[0])
         struct_mmlt.matrixIn[1].connect(self.zero.worldInverseMatrix[0])
 
@@ -88,10 +89,6 @@ class ControlGenerator(MacroComponent):
         self.out_struct_mtx.plug.connect(struct_mmlt.matrixSum)
         self.out_world_mtx.plug.connect(self.control.worldMatrix[0])
         self.out_normalized_mtx.plug.connect(control.get_normalized_matrix_output(self.control))
-
-    def tpose(self):
-        if self.tpose_system:
-            self.tpose_system.build(self)
 
     def _build_custom_attributes(self):
         """
@@ -125,10 +122,11 @@ class ControlGenerator(MacroComponent):
         positions it correct
         :return:
         """
+
         matrix_data = guide.get_world_matrix(self.name.replace(index=self.index))
 
         self.control = control.build(self.name)
-        cmds.xform(self.control, worldSpace=True, matrix=matrix_data)
+        tree.set_matrix(self.control, matrix_data)
 
         self.control.visibility.connect(self.in_visibility.plug)
 
@@ -148,6 +146,6 @@ class ControlGenerator(MacroComponent):
         """
         self.stack = Stack(self.control)
         self.zero = self.stack.add(ZERO)
-        cmds.parent(self.zero, self.structure.controls)
+        tree.parent(self.zero, self.structure.controls)
 
         self.zero.offsetParentMatrix.connect(self.in_parent_mtx.plug)

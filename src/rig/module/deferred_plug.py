@@ -84,7 +84,7 @@ class DeferredPlug:
         :param node: The Maya node wrapper where the attribute will be added.
         :return: None
         """
-        node.add_attr(name=self.name, multi=self.multi, **self.settings)
+        node.add_attribute(name=self.name, multi=self.multi, **self.settings)
         self.plug = Plug(node, self.name)
 
     def build_connection(self):

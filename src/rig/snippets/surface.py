@@ -49,18 +49,18 @@ class MatrixRibbonBuilder:
     def build(self):
         driver_plugs = []
         for i, mtx in enumerate(self.in_matrix_plugs):
-            trl = Node.create("translationFromMatrix", name=f"{self.surface_name}_{mtx.node}_tf")
+            trl = Node(f"{self.surface_name}_{mtx.node}_tf").create("translationFromMatrix")
             trl.input.connect(mtx)
 
-            axis = Node.create("axisFromMatrix", name=f"{self.surface_name}_{mtx.node}_aim")
+            axis = Node(f"{self.surface_name}_{mtx.node}_aim").create("axisFromMatrix")
             axis.input.connect(mtx)
 
-            pos_left = Node.create("plusMinusAverage", "test")
+            pos_left = Node("test").create("plusMinusAverage")
             pos_left.input3D[0].connect(trl.output)
             pos_left.input3D[1].connect(axis.output)
             pos_left.operation.value = 2 if i in self.flip_indices else 1
 
-            pos_right = Node.create("plusMinusAverage", "test")
+            pos_right = Node("test").create("plusMinusAverage")
             pos_right.input3D[0].connect(trl.output)
             pos_right.input3D[1].connect(axis.output)
             pos_right.operation.value = 1 if i in self.flip_indices else 2

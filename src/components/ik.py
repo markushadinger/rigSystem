@@ -89,7 +89,7 @@ class IK(MacroComponent):
 
             jnt = self.joints[i + 1]
 
-            stretch_node = Node.create("multiplyDivide", self.name.replace(suffix="div", index=index))
+            stretch_node = Node(self.name.replace(suffix="div", index=index)).create("multiplyDivide")
             stretch_node.input1.value = jnt.t.value[0]
             stretch_node.input2X.connect(self.in_stretch_flt.plug[i])
             stretch_node.input2Y.connect(self.in_stretch_flt.plug[i])
@@ -116,7 +116,7 @@ class Stretch(MacroComponent):
         points = [matrix.get_point_from_matrix(m) for m in guide_matrices]
         distances = [p1.distanceTo(p2) for p1, p2 in zip(points, points[1:])]
 
-        chain_length = Node.create("sum", self.name.replace(suffix="sum"))
+        chain_length = Node(self.name.replace(suffix="sum")).create("sum")
         custom_indices = self.in_custom_stretch.plug.connected_indices()
 
         # set default length values
@@ -127,77 +127,77 @@ class Stretch(MacroComponent):
             if i not in custom_indices:
                 continue
 
-            mult = Node.create("multiply", self.name.replace(suffix="mult", index=index))
+            mult = Node(self.name.replace(suffix="mult", index=index)).create("multiply")
             mult.input[0].value = distances[i]
             mult.input[1].connect(self.in_custom_stretch.plug[i])
             chain_length.input[i].connect(mult.output)
 
-        start_mmlt = Node.create("multMatrix", self.name.replace(suffix="mmlt", index="start"))
+        start_mmlt = Node(self.name.replace(suffix="mmlt", index="start")).create("multMatrix")
         start_mmlt.matrixIn[0].value = guide_matrices[0]
         start_mmlt.matrixIn[1].connect(self.in_start_mtx.plug)
         start_mmlt.matrixIn[2].connect(self.in_inv_scale_mtx.plug)
 
-        end_mmlt = Node.create("multMatrix", self.name.replace(suffix="mmlt", index="end"))
+        end_mmlt = Node(self.name.replace(suffix="mmlt", index="end")).create("multMatrix")
         end_mmlt.matrixIn[0].value = guide_matrices[-1]
         end_mmlt.matrixIn[1].connect(self.in_end_mtx.plug)
         end_mmlt.matrixIn[2].connect(self.in_inv_scale_mtx.plug)
 
-        control_distance = Node.create("distanceBetween", self.name.replace(suffix="distance"))
+        control_distance = Node(self.name.replace(suffix="distance")).create("distanceBetween")
         control_distance.inMatrix1.connect(start_mmlt.matrixSum)
         control_distance.inMatrix2.connect(end_mmlt.matrixSum)
 
         if self.enable_soft_ik:
-            soft_start = Node.create("subtract", self.name.replace(index="soft", suffix="minus"))
+            soft_start = Node(self.name.replace(index="soft", suffix="minus")).create("subtract")
             soft_start.input1.connect(chain_length.output)
             soft_start.input2.connect(self.in_soft_radius.plug)
 
-            exp_length = Node.create("subtract", self.name.replace(index="soft", suffix="minus"))
+            exp_length = Node(self.name.replace(index="soft", suffix="minus")).create("subtract")
             exp_length.input1.connect(control_distance.distance)
             exp_length.input2.connect(soft_start.output)
 
-            exp_divide = Node.create("divide", self.name.replace(index="soft", suffix="div"))
+            exp_divide = Node(self.name.replace(index="soft", suffix="div")).create("divide")
             exp_divide.input1.connect(exp_length.output)
             exp_divide.input2.connect(self.in_soft_radius.plug)
 
-            neg_mult = Node.create("multiply", self.name.replace(index="soft", suffix="mult"))
+            neg_mult = Node(self.name.replace(index="soft", suffix="mult")).create("multiply")
             neg_mult.input[0].connect(exp_divide.output)
             neg_mult.input[1].value = -1
 
-            power = Node.create("power", self.name.replace(index="soft", suffix="pow"))
+            power = Node(self.name.replace(index="soft", suffix="pow")).create("power")
             power.input.value = math.e
             power.exponent.connect(neg_mult.output)
 
-            one_minus = Node.create("subtract", self.name.replace(index="soft", suffix="minus"))
+            one_minus = Node(self.name.replace(index="soft", suffix="minus")).create("subtract")
             one_minus.input1.value = 1
             one_minus.input2.connect(power.output)
 
-            neg_mult = Node.create("multiply", self.name.replace(index="soft", suffix="mult"))
+            neg_mult = Node(self.name.replace(index="soft", suffix="mult")).create("multiply")
             neg_mult.input[0].connect(one_minus.output)
             neg_mult.input[1].connect(self.in_soft_radius.plug)
 
-            soft_distance = Node.create("sum", self.name.replace(index="soft", suffix="sum"))
+            soft_distance = Node(self.name.replace(index="soft", suffix="sum")).create("sum")
             soft_distance.input[0].connect(neg_mult.output)
             soft_distance.input[1].connect(soft_start.output)
 
-            condition = Node.create("condition", self.name.replace(index="soft", suffix="cond"))
+            condition = Node(self.name.replace(index="soft", suffix="cond")).create("condition")
             condition.firstTerm.connect(control_distance.distance)
             condition.secondTerm.connect(soft_start.output)
             condition.operation.value = 4  # <
             condition.colorIfTrueR.connect(control_distance.distance)
             condition.colorIfFalseR.connect(soft_distance.output)
 
-            factor = Node.create("divide", self.name.replace(suffix="div"))
+            factor = Node(self.name.replace(suffix="div")).create("divide")
             factor.input1.connect(control_distance.distance)
             factor.input2.connect(condition.outColorR)
             stretch_plug = factor.output
 
         else:
-            factor = Node.create("divide", self.name.replace(suffix="div"))
+            factor = Node(self.name.replace(suffix="div")).create("divide")
             factor.input1.connect(control_distance.distance)
             factor.input2.connect(chain_length.output)
             stretch_plug = factor.output
 
-        maximum = Node.create("max", self.name.replace(suffix="max"))
+        maximum = Node(self.name.replace(suffix="max")).create("max")
         maximum.input[0].value = 1
         maximum.input[1].connect(stretch_plug)
 
@@ -205,7 +205,7 @@ class Stretch(MacroComponent):
             out_plug = maximum.output
 
             if i in custom_indices:
-                final_mult = Node.create("multiply", self.name.replace(index=index, suffix="mult"))
+                final_mult = Node(self.name.replace(index=index, suffix="mult")).create("multiply")
                 final_mult.input[0].connect(out_plug)
                 final_mult.input[1].connect(self.in_custom_stretch.plug[i])
                 out_plug = final_mult.output
@@ -217,11 +217,11 @@ class LockTipSystem:
     def build(self, component: IK):
         tip_jnt = component.joints[-1]
 
-        mmlt = Node.create("multMatrix", name=component.name.replace(suffix="mmlt"))
+        mmlt = Node(component.name.replace(suffix="mmlt")).create("multMatrix")
         mmlt.matrixIn[0].connect(component.in_driver_mtx.plug)
         mmlt.matrixIn[1].connect(tip_jnt.parentInverseMatrix[0])
 
-        rot = Node.create("rotationFromMatrix", name=component.name.replace(suffix="mrot"))
+        rot = Node(component.name.replace(suffix="mrot")).create("rotationFromMatrix")
         rot.input.connect(mmlt.matrixSum)
         tip_jnt.rotate.connect(rot.output)
 

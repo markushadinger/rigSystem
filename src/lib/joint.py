@@ -18,7 +18,7 @@ def create(name: naming.Name, skin_joint=True) -> Node:
     :param skin_joint: Whether to add a skin tag to the joint
     :return: The created joint node
     """
-    jnt = Node.create("joint", name.replace(suffix=SKIN_SUFFIX if skin_joint else JNT_SUFFIX))
+    jnt = Node(name.replace(suffix=SKIN_SUFFIX if skin_joint else JNT_SUFFIX)).create("joint")
     tags.add_component_tag(jnt, name.component_name)
     if skin_joint:
         tags.add_tag(jnt, SKIN_TAG)

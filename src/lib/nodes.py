@@ -7,10 +7,11 @@ from src.lib.naming import Name
 
 
 class Plug(str):
-    def __new__(cls, node: "Node", name: str):
+    def __new__(cls, node: "Node", name: str) -> "Plug":
         obj = super().__new__(cls, f"{node}.{name}")
         obj._node = node
         obj._name = name
+        obj._deferred = []
         return obj
 
     @classmethod
@@ -38,6 +39,14 @@ class Plug(str):
 
         if is_matrix_value(v):
             cmds.setAttr(self, *v, type="matrix")
+            return
+
+        if isinstance(v, OpenMaya.MVector):
+            cmds.setAttr(self, *list(v))
+            return
+
+        if isinstance(v, OpenMaya.MPoint):
+            cmds.setAttr(self, *list(v)[:3])
             return
 
         if isinstance(v, (list, tuple)):
@@ -79,11 +88,32 @@ class Plug(str):
             raise TypeError(f"Can only connect Plug to Plug. {other} -> {self}")
         cmds.connectAttr(other, self, force=True)
 
+    def connect_deferred(self, plug):
+        self._deferred.append(plug)
+
+    def resolve_deferred(self):
+        for plug in self._deferred:
+            if not isinstance(plug, Plug):
+                continue
+            self.connect(plug)
+        self._deferred.clear()
+
     def exists(self) -> bool:
         return cmds.objExists(self)
 
     def connected_indices(self) -> list[int]:
         return cmds.getAttr(self, multiIndices=True) or []
+
+    def disconnect_in(self):
+        if input_plug := self.get_in_connection():
+            cmds.disconnectAttr(input_plug, self)
+
+    def disconnect_out(self):
+        for plug in self.get_out_connections():
+            cmds.disconnectAttr(self, plug)
+
+    def is_multi(self) -> bool:
+        return cmds.attributeQuery(self.name, node=self.node, multi=True)
 
     def __setattr__(self, key, value):
         if key.startswith("_"):
@@ -105,16 +135,14 @@ class Plug(str):
 
 class Node(str):
 
-    @classmethod
-    def create(cls, node_type: str, name: str | Name, **kwargs) -> "Node":
+    def create(self, node_type: str, **kwargs) -> "Node":
         """
-        Create a new node of the given type and name.
+        Create a new node of the given type, named after this instance.
         :param node_type: Type of the node to create (e.g. "transform", "multMatrix", etc.)
-        :param name: Name of the node to create
         :param kwargs: Additional keyword arguments to pass to cmds.createNode (e.g. parent, etc.)
         :return: The created node as a Node instance
         """
-        return cls(cmds.createNode(node_type, name=str(name), **kwargs))
+        return Node(cmds.createNode(node_type, name=str(self), **kwargs))
 
     @classmethod
     def generate(cls, generator: Callable, name: str | Name, **kwargs) -> "Node":
@@ -129,24 +157,36 @@ class Node(str):
         kwargs["name"] = str(name)
         return cls(generator(**kwargs))
 
-    def __new__(cls, node: str):
-        obj = super().__new__(cls, node)
+    def __new__(cls, node: str | Name):
+        obj = super().__new__(cls, str(node))
         obj._node = node
         return obj
 
     def __getattr__(self, item: str) -> Plug:
         return Plug(self, item)
 
-    def add_attr(self, name: str, **kwargs) -> Plug:
+    def add_attribute(self, name: str, **kwargs) -> Plug:
         plug = Plug(self, name)
 
-        if not cmds.objExists(plug):
+        if not plug.exists():
             cmds.addAttr(self, longName=name, **kwargs)
 
         return plug
 
     def exists(self) -> bool:
         return cmds.objExists(self)
+
+    def __eq__(self, other):
+        return str(self) == str(other)
+
+    @property
+    def type(self) -> str:
+        return cmds.nodeType(str(self))
+
+
+class DeferredNode:
+    def __init__(self):
+        self.node: Node | None = None
 
 
 def is_matrix_value(value: any) -> bool:

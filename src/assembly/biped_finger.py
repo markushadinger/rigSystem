@@ -167,15 +167,15 @@ class BipedFinger(builder.Builder):
             self.meta_carpal.indices = self.METACARPAL_INDEX, self.INDICES[0]
             self.meta_carpal.sample_count = 2
             self.meta_carpal.external_structure = self.structure.structure
-            self.meta_carpal.in_start_mtx.connect(self.in_parent)
-            self.meta_carpal.in_end_mtx.connect(self.metacarpal_ctrl.out_normalized_mtx)
+            # self.meta_carpal.in_start_mtx.connect(self.in_parent)
+            # self.meta_carpal.in_end_mtx.connect(self.metacarpal_ctrl.out_normalized_mtx)
             self.add_module(self.meta_carpal)
 
             metacarpal_blend = MatrixNormalBlend(self.name.replace(extra="metaBlend"))
             metacarpal_blend.external_structure = self.structure.structure
             metacarpal_blend.index = self.INDICES[0]
             metacarpal_blend.in_mtx.connect(self.in_parent)
-            metacarpal_blend.in_blend.connect(self.meta_carpal.out_norm_mtxs, src_index=1)
+            # metacarpal_blend.in_blend.connect(self.meta_carpal.out_norm_mtxs, src_index=1)
             metacarpal_blend.in_blend_translate.default_value = 1
             self.add_module(metacarpal_blend)
 
@@ -201,8 +201,8 @@ class BipedFinger(builder.Builder):
         self.localize_joints.in_mtxs.connect(self.blend.out_mtxs, src_index=1, dst_index=1)
         self.localize_joints.in_mtxs.connect(self.blend.out_mtxs, src_index=2, dst_index=2)
 
-        if self.has_metacarpal:
-            self.localize_joints.in_mtxs.connect(self.meta_carpal.out_mtxs, src_index=0, dst_index=3)
+        # if self.has_metacarpal:
+        #     self.localize_joints.in_mtxs.connect(self.meta_carpal.out_mtxs, src_index=0, dst_index=3)
 
         self.localize_joints.in_parent_mtx.connect(self.in_localize)
         self.add_module(self.localize_joints)

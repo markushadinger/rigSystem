@@ -18,7 +18,7 @@ class MatrixDrivenCurveBuilder:
         trf_plugs = []
 
         for mtx_plug in self.in_matrix_plugs:
-            trl = Node.create("translationFromMatrix", name=f"{self.name}_{mtx_plug.node}_tf")
+            trl = Node(f"{self.name}_{mtx_plug.node}_tf").create("translationFromMatrix")
             trl.input.connect(mtx_plug)
             trf_plugs.append(trl.output)
 

@@ -53,7 +53,7 @@ class FootRoll(MacroComponent):
 
         roll_chain[0].offsetParentMatrix.connect(self.in_parent_mtx.plug)
 
-        condition = Node.create("condition", self.name.replace(index="bank", suffix="cond"))
+        condition = Node(self.name.replace(index="bank", suffix="cond")).create("condition")
         condition.firstTerm.connect(self.in_bank_flt.plug)
         condition.operation.value = 2  # >
         condition.colorIfTrue.value = [0, 0, 0]
@@ -64,7 +64,7 @@ class FootRoll(MacroComponent):
         roll_chain[0].rz.connect(condition.outColorR)
         roll_chain[1].rz.connect(condition.outColorG)
 
-        condition = Node.create("condition", self.name.replace(suffix="cond"))
+        condition = Node(self.name.replace(suffix="cond")).create("condition")
         condition.firstTerm.connect(self.in_roll_flt.plug)
         condition.operation.value = 2  # >
         condition.colorIfTrue.value = [0, 0, 0]
@@ -77,21 +77,21 @@ class FootRoll(MacroComponent):
         roll_chain[2].rx.connect(back_roll_plug)
         roll_chain[2].ry.connect(self.in_heel_twist.plug)
 
-        clamp = Node.create("clampRange", self.name.replace(index="roll", suffix="clamp"))
+        clamp = Node(self.name.replace(index="roll", suffix="clamp")).create("clampRange")
         clamp.input.connect(fwd_roll_plug)
         clamp.maximum.connect(self.in_ball_roll_compensate.plug)
         roll_chain[3].rx.connect(clamp.output)
         roll_chain[3].ry.connect(self.in_ball_twist.plug)
 
-        normalized_roll = Node.create("subtract", self.name.replace(suffix="minus"))
+        normalized_roll = Node(self.name.replace(suffix="minus")).create("subtract")
         normalized_roll.input1.connect(fwd_roll_plug)
         normalized_roll.input2.connect(clamp.output)
 
-        factor = Node.create("divide", self.name.replace(suffix="div"))
+        factor = Node(self.name.replace(suffix="div")).create("divide")
         factor.input1.connect(self.in_tip_start_rise.plug)
         factor.input2.connect(self.in_tip_end_rise.plug)
 
-        remap = Node.create("remapValue", self.name.replace(suffix="remap"))
+        remap = Node(self.name.replace(suffix="remap")).create("remapValue")
         remap.inputValue.connect(normalized_roll.output)
         remap.inputMax.connect(self.in_tip_end_rise.plug)
         remap.outputMax.connect(self.in_tip_start_rise.plug)
@@ -104,7 +104,7 @@ class FootRoll(MacroComponent):
 
         roll_chain[6].rz.connect(remap.outValue)
 
-        tip_roll = Node.create("subtract", self.name.replace(suffix="minus"))
+        tip_roll = Node(self.name.replace(suffix="minus")).create("subtract")
         tip_roll.input1.connect(normalized_roll.output)
         tip_roll.input2.connect(remap.outValue)
 

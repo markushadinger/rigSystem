@@ -24,10 +24,10 @@ class Line(MacroComponent):
 
         curve.visibility.connect(self.in_visibility.plug)
 
-        start_pnt = Node.create("translationFromMatrix", self.name.replace(index="start", suffix="tmtx"))
+        start_pnt = Node(self.name.replace(index="start", suffix="tmtx")).create("translationFromMatrix")
         start_pnt.input.connect(self.start_mtx.plug)
 
-        end_pnt = Node.create("translationFromMatrix", self.name.replace(index="end", suffix="tmtx"))
+        end_pnt = Node(self.name.replace(index="end", suffix="tmtx")).create("translationFromMatrix")
         end_pnt.input.connect(self.end_mtx.plug)
 
         shape.controlPoints[0].connect(start_pnt.output)

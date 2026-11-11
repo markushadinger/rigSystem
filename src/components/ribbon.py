@@ -3,7 +3,7 @@ from typing import Callable
 from maya import cmds
 from maya.api import OpenMaya
 
-from src.components._comp_base import MacroComponent
+from src.components._comp_base import Component
 from src.rig.module.deferred_plug import DeferredPlug, MATRIX
 from src.lib import naming
 from src.lib.nodes import Node
@@ -14,13 +14,14 @@ from src.rig.snippets import pins
 # import numpy
 
 
-class Ribbon(MacroComponent):
-    in_mtx = DeferredPlug("in_mtx", "input", MATRIX, multi=True)
-    out_mtx = DeferredPlug("out_mtx", "output", MATRIX, multi=True)
-    out_normalized_mtx = DeferredPlug("out_normalized_mtx", "output", MATRIX, multi=True)
+class Ribbon(Component):
 
     def __init__(self, name: naming.Name):
         super().__init__(name)
+
+        # io
+        self.in_mtxs = self.register_input("in_mtx", dt="matrix", multi=True)
+        self.out_mtxs = self.register_output("out_mtxs", dt="matrix", multi=True)
 
         self.sample_points: int = 10
         self.degree: int = 3
@@ -31,8 +32,9 @@ class Ribbon(MacroComponent):
         self.alpha = 0.3
 
     def build(self):
-        connected_plugs = set(cmds.getAttr(self.in_mtx.plug, multiIndices=True) or [])
-        matrix_plugs = [self.in_mtx.plug[i] for i in connected_plugs]
+        super().build()
+        connected_plugs = self.in_mtxs.connected_indices()
+        matrix_plugs = [self.in_mtxs[i] for i in connected_plugs]
 
         # build surface
         surface_transform, surface_shape = self._build_ribbon(matrix_plugs)
@@ -60,13 +62,7 @@ class Ribbon(MacroComponent):
 
         for i, u in enumerate(u_mapping):
             pin.coordinate[i].value = [u, 0.5]
-
-            self.out_mtx.plug[i].connect(pin.outputMatrix[i])
-
-            mlt = Node.create("multMatrix", name=self.name.replace(index=i, suffix="norm_mmlt"))
-            mlt.matrixIn[0].value = OpenMaya.MMatrix(pin.outputMatrix[i].value).inverse()
-            mlt.matrixIn[1].connect(pin.outputMatrix[i])
-            self.out_normalized_mtx.plug[i].connect(mlt.matrixSum)
+            self.out_mtxs[i].connect(pin.outputMatrix[i])
 
         return pin
 
@@ -110,15 +106,12 @@ class Ribbon(MacroComponent):
         surface_builder.degree = self.degree
         surface_builder.flip_indices = self.flip_indices
         surface_builder.build()
-        cmds.parent(surface_builder.out_surface_transform, self.structure.logic)
+        # cmds.parent(surface_builder.out_surface_transform, self.structure.logic)
 
         return surface_builder.out_surface_transform, surface_builder.out_surface_shape
 
 
 class RibbonSkin(Ribbon):
-    in_mtx = DeferredPlug("in_mtx", "input", MATRIX, multi=True)
-    out_mtx = DeferredPlug("out_mtx", "output", MATRIX, multi=True)
-    out_normalized_mtx = DeferredPlug("out_normalized_mtx", "output", MATRIX, multi=True)
 
     def __init__(self, name: naming.Name):
         super().__init__(name)
@@ -135,7 +128,7 @@ class RibbonSkin(Ribbon):
             degree=min(self.degree, len(matrix_plugs) - 1)
         )
         surface.set_points_on_surface(shape, points)
-        cmds.parent(transform, self.structure.logic)
+        # cmds.parent(transform, self.structure.logic)
 
         cmds.rebuildSurface(
             shape,
@@ -156,9 +149,9 @@ class RibbonSkin(Ribbon):
 
         joints = []
         for i, plug in enumerate(matrix_plugs):
-            jnt = Node.create("joint", self.name.replace(index=i, suffix="jnt"))
+            jnt = Node(self.name.replace(index=i, suffix="jnt")).create("joint")
             jnt.offsetParentMatrix.connect(plug)
-            cmds.parent(jnt, self.structure.logic)
+            # cmds.parent(jnt, self.structure.logic)
             joints.append(jnt)
 
         skc = cmds.skinCluster(joints, transform, toSelectedBones=True)[0]

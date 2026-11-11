@@ -48,7 +48,7 @@ def build_pole_ik(
         end_mtx = MMatrix(chain[-1].worldMatrix[0].value)
         offset_mtx = end_mtx * driver_mtx.inverse()
 
-        mlt_node = Node.create("multMatrix", str(name.replace(suffix="mmlt", extra=f"{name.extra}_offset")))
+        mlt_node = Node(str(name.replace(suffix="mmlt", extra=f"{name.extra}_offset"))).create("multMatrix")
         mlt_node.matrixIn[0].value = offset_mtx
         mlt_node.matrixIn[1].connect(driver_plug)
         driver_plug = mlt_node.matrixSum
@@ -63,7 +63,7 @@ def build_pole_ik(
     ik_handle.offsetParentMatrix.connect(driver_plug)
     cmds.xform(ik_handle, worldSpace=True, matrix=chain[-1].worldMatrix[0].value)
 
-    pole_const = Node.create("poleVectorConstraint", str(name.replace(suffix="pvc")))
+    pole_const = Node(str(name.replace(suffix="pvc"))).create("poleVectorConstraint")
     pole_const.target[0].targetParentMatrix.connect(pole_plug)
     pole_const.pivotSpace.connect(chain[0].parentMatrix[0])
     pole_const.constraintRotatePivot.connect(chain[0].t)
@@ -85,5 +85,5 @@ class SimpleBuilder:
 
     def build(self):
         for i, mtx in enumerate(self.init_matrices):
-            jnt = Node.create("joint", naming.get_name(self.name, index=i, suffix="jnt"))
+            jnt = Node(naming.get_name(self.name, index=i, suffix="jnt")).create("joint")
             cmds.xform()

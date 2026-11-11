@@ -27,7 +27,7 @@ class MatricesSwitch(MacroComponent):
             a_plug = self.in_a_mtxs.plug[index] if index in a_indices else default_plug
             b_plug = self.in_b_mtxs.plug[index] if index in b_indices else default_plug
 
-            choice_node = Node.create("choice", self.name.replace(suffix="choice", index=index))
+            choice_node = Node(self.name.replace(suffix="choice", index=index)).create("choice")
             choice_node.selector.connect(self.in_switch_bool.plug)
 
             choice_node.input[0].connect(a_plug)

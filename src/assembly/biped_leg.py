@@ -2,7 +2,9 @@ from maya.api import OpenMaya
 
 from src.architecture import builder
 from src.components.offset_systems.ankleIkOffsetSystem import AnkleIkOffsetSystem
+from src.components.offset_systems.fkStraigthOffsetSystem import FkStraightOffsetSystem
 from src.components.offset_systems.poleVectorOffsetSystem import PoleVectorOffsetSystem
+from src.components.offset_systems.bipedAnkleFkOffset import BipedAnkleFkOffsetSystem
 from src.components.matricesSwitch import MatricesSwitch
 from src.components.jointRenderer import JointRenderer
 from src.assembly.basic.fk_chain import FkChain
@@ -92,6 +94,24 @@ class BipedLeg(builder.Builder):
         self.fk.init_submodules()
         self.add_module(self.fk)
 
+        for i, index in enumerate(self.INDICES[:2]):
+            fk_offset_system = FkStraightOffsetSystem(self.name.replace(extra=f"fkOffsetSystem{index}"))
+            fk_offset_system.default_matrix = OpenMaya.MMatrix([
+                0, -1, 0, 0,
+                0, 0, -1, 0,
+                1 if self.name.side == "l" else -1, 0, 0, 0,
+                0, 0, 0, 1])
+            if i > 0:
+                fk_offset_system.prev_index = self.INDICES[i - 1]
+            self.fk.fk_modules[i].set_offset_system(fk_offset_system)
+
+        ankle_offset_system = BipedAnkleFkOffsetSystem(self.name.replace(extra="fkAnkleOffsetSystem"))
+        ankle_offset_system.knee_index = self.INDICES[1]
+        ankle_offset_system.ankle_index = self.INDICES[2]
+        ankle_offset_system.flip_y = True
+        ankle_offset_system.flip_z = self.name.side == "l"
+        self.fk.fk_modules[2].set_offset_system(ankle_offset_system)
+
         self.fk_spsw_attr = self.fk.fk_modules[0].add_attr("space", at="enum", k=True, dv=0, en="-")
         self.fk_spsw.switch_int.connect(self.fk_spsw_attr)
 
@@ -164,6 +184,7 @@ class BipedLeg(builder.Builder):
         self.pole_offset.start_index = self.INDICES[0]
         self.pole_offset.pole_index = self.INDICES[1]
         self.pole_offset.end_index = self.INDICES[2]
+        self.pole_offset.match_start_axis = "x"
 
         self.ik_pole = control.ControlGenerator(self.name.replace(extra="ik", index="pole"))
         self.ik_pole.in_parent_mtx.connect(self.in_global)
@@ -238,15 +259,15 @@ class BipedLeg(builder.Builder):
         upper_twist = Piston(self.name.replace(extra="upperTwist"))
         upper_twist.indices = self.INDICES[:2]
         upper_twist.external_structure = self.structure.structure
-        upper_twist.in_start_mtx.connect(self.in_local_parent)
-        upper_twist.in_end_mtx.connect(self.localize_joints.out_mtxs, src_index=1)
+        # upper_twist.in_start_mtx.connect(self.in_local_parent)
+        # upper_twist.in_end_mtx.connect(self.localize_joints.out_mtxs, src_index=1)
         self.upper_twist = self.add_module(upper_twist)
 
         upper_twist_joints = JointRenderer(self.name.replace(extra="upperTwistSkin"))
         upper_twist_joints.indices = range(upper_twist.sample_count)
         upper_twist_joints.nice_name = self.name.replace(extra="upperTwist")
         upper_twist_joints.external_structure = self.structure.structure
-        upper_twist_joints.in_mtxs.connect(self.upper_twist.out_mtxs)
+        # upper_twist_joints.in_mtxs.connect(self.upper_twist.out_mtxs)
         upper_twist_joints.from_guides = False
         upper_twist_joints.for_skinning = True
         self.upper_twist_joints = self.add_module(upper_twist_joints)
@@ -254,21 +275,18 @@ class BipedLeg(builder.Builder):
         lower_twist = Piston(self.name.replace(extra="lowerTwist"))
         lower_twist.indices = self.INDICES[1:3]
         lower_twist.external_structure = self.structure.structure
-        lower_twist.in_start_mtx.connect(self.localize_joints.out_mtxs, src_index=1)
-        lower_twist.in_end_mtx.connect(self.localize_joints.out_mtxs, src_index=2)
+        # lower_twist.in_start_mtx.connect(self.localize_joints.out_mtxs, src_index=1)
+        # lower_twist.in_end_mtx.connect(self.localize_joints.out_mtxs, src_index=2)
         self.lower_twist = self.add_module(lower_twist)
 
         lower_twist_joints = JointRenderer(self.name.replace(extra="lowerTwistSkin"))
         lower_twist_joints.indices = range(lower_twist.sample_count)
         lower_twist_joints.nice_name = self.name.replace(extra="lowerTwist")
         lower_twist_joints.external_structure = self.structure.structure
-        lower_twist_joints.in_mtxs.connect(self.lower_twist.out_mtxs)
+        # lower_twist_joints.in_mtxs.connect(self.lower_twist.out_mtxs)
         lower_twist_joints.from_guides = False
         lower_twist_joints.for_skinning = True
         self.lower_twist_joints = self.add_module(lower_twist_joints)
 
         for mod in self.modules[1:]:
             mod.external_structure = self.structure.structure
-
-
-

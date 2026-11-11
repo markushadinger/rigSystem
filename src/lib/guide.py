@@ -1,7 +1,7 @@
 from maya import cmds
 from maya.api import OpenMaya
 
-from src.lib import naming, tags
+from src.lib import naming, tags, tree
 from src.lib.nodes import Node
 
 GUIDE_TAG = "guide"
@@ -35,19 +35,19 @@ def create_guide_joint(name: str | naming.Name) -> str:
     :param component: Component name
     :return: Name of the joint
     """
-    jnt = Node.create("joint", name=name.replace(suffix=SUFFIX))
+    jnt = Node(name.replace(suffix=SUFFIX)).create("joint")
     tags.add_tag(jnt, GUIDE_TAG)
     tags.add_component_tag(jnt, name.component_name)
     return jnt
 
 
-def get_guide_data(node: str | Node) -> list[float]:
+def get_guide_data(node: str | Node) -> OpenMaya.MMatrix:
     """
     Get guide data for a given node.
     :param node: Node to get guide data for
     :return: List of guide data
     """
-    return cmds.xform(node, query=True, worldSpace=True, matrix=True)
+    return tree.get_matrix(node)
 
 
 def get_guide_data_for_component(component: str) -> dict[str, any]:
@@ -81,4 +81,4 @@ def get_world_matrix(name: naming.Name) -> OpenMaya.MMatrix:
     if not guide_node.exists():
         return OpenMaya.MMatrix(DEFAULT_VALUE)
 
-    return OpenMaya.MMatrix(get_guide_node(name).worldMatrix[0].value)
+    return tree.get_matrix(guide_node)

@@ -3,67 +3,66 @@ from pathlib import Path
 from maya import cmds
 
 from src.components._comp_base import Component
-from src.lib.io import version
-from src.lib import tags
-from src.lib.nodes import Node
+from src.lib import version
+from src.lib import tree
+from src.lib.nodes import Node, DeferredNode
 from src.lib.naming import Name
-from src.lib import guide
 from src.rig.module.deferred_plug import DeferredPlug, MATRIX
 
 
-class GuideFileImport(Component):
+class MayaFileImport(Component):
 
     def __init__(self, name: Name):
         super().__init__(name)
+        # --- inputs
         self.version: int = -1
-        self.node = None
+        self.path: Path | None = None
+        self.category_name: Name | None = None
+        self.parent_node: DeferredNode | None = None
 
-    def load_guides(self):
-        file_path = version.get_version_path(self.context.asset_path() / "guides" / "guides.ma", self.version)
-        new_nodes = cmds.file(str(file_path), i=True, returnNewNodes=True)
+        # storage
+        self.root_nodes = []
+        self.imported_nodes: list[Node]= []
 
-        root_nodes = []
+        self._category_node: Node | None = None
 
-        for node in new_nodes:
-            if not cmds.objectType(node, isAType="transform"):
-                continue
+    @property
+    def category_node(self) -> Node | None:
+        return self._category_node
 
-            tags.add_tag(node, guide.GUIDE_TAG)
-
-            if cmds.listRelatives(node, parent=True) is None:
-                root_nodes.append(node)
-
-        cmds.parent(root_nodes, self.node)
+    @property
+    def import_parent_node(self) -> Node | None:
+        return self.category_node or self.parent_node
 
     def prepare(self):
-        self.node = Node.create("transform", name=self.name, parent=self.context.rig_root_node)
+        if self.category_name:
+            self._category_node = Node(self.category_name).create("transform")
+
+        if self._category_node and self.parent_node:
+            tree.parent(self._category_node, self.parent_node.node)
+
+    def load_files(self):
+        file_path = version.get_version_path(self.path, self.version)
+
+        self.imported_nodes = [Node(n.split("|")[-1]) for n in cmds.file(str(file_path), i=True, returnNewNodes=True)]
+        self.root_nodes = [n for n in self.imported_nodes if tree.is_root_node(n)]
+
+        if parent_node := self.import_parent_node:
+            tree.parent(self.root_nodes, parent_node)
 
 
-class ModelFileImport(Component):
+class ModelFileImport(MayaFileImport):
     in_parent_mtx = DeferredPlug("parent_mtx", "input", MATRIX)
 
     def __init__(self, name: Name):
         super().__init__(name)
-        self.version: int = -1
-        self.path: Path = Path()
         self.meshes = []
-        self.root_nodes = []
 
-    def prepare(self):
-        super().prepare()
+    def load_files(self):
+        super().load_files()
+        imported_shapes = [node for node in self.imported_nodes if node.type == "mesh"]
+        self.meshes.extend([tree.get_parent(shape) for shape in imported_shapes])
 
-        file_path = version.get_version_path(self.path, self.version)
-        print(f"Importing model from: {file_path}")
-
-        imported_nodes = cmds.file(str(file_path), i=True, returnNewNodes=True)
-
-        imported_shapes = [node for node in imported_nodes if cmds.nodeType(node) == "mesh"]
-        imported_transforms = [node for node in imported_nodes if cmds.nodeType(node) == "transform"]
-
-        self.meshes.extend([cmds.listRelatives(shape, parent=True)[0] for shape in imported_shapes])
-
-        self.root_nodes = [n for n in imported_transforms if not cmds.listRelatives(n, parent=True)]
-
-        for n in self.root_nodes:
-            node = Node(n)
-            node.offsetParentMatrix.connect(self.in_parent_mtx.plug)
+        # for n in self.root_nodes:
+        #     node = Node(n)
+        #     node.offsetParentMatrix.connect(self.in_parent_mtx.plug)

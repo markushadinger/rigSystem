@@ -6,8 +6,10 @@ from src.components._comp_base import Component
 from src.lib.nodes import Node
 from src.lib.naming import Name
 from src.rig.module.deferred_plug import DeferredPlug, MATRIX
-from src.lib.deformer.io import skinClusterIo
-from src.lib.io import version
+from src.lib import version
+
+from src.lib.deformer.skinCluster.io import numpy_io
+from src.lib.deformer.skinCluster.io import maya_io
 
 
 class SkinClusterImport(Component):
@@ -20,26 +22,25 @@ class SkinClusterImport(Component):
         self.meshes = []
 
     def import_deformer(self):
-        deformer_path = self.context.asset_path() / "deformer"
 
         for mesh in self.meshes:
-            mesh_path = deformer_path / mesh / "skinCluster" / f"{mesh}.npz"
+            mesh_path = self.path / mesh / "skinCluster" / f"{mesh}.npz"
 
             if not mesh_path.parent.exists():
                 continue
 
             version_path = version.get_version_path(mesh_path, self.version)
-            data = skinClusterIo.load(version_path)
+            data = numpy_io.load(version_path)
+            # data.geo = mesh
+            # data.points = maya_io.get_points_from_mesh(mesh)
 
-            skc = Node(data[skinClusterIo.NAME])
+            # create missing joints
+            for influence in data.influences:
+                if cmds.objExists(influence):
+                    continue
+                Node(influence).create("joint")
 
-            if not skc.exists():
-                skc = cmds.skinCluster(data[skinClusterIo.INFLUENCES], mesh, toSelectedBones=True, name=skc)[0]
-
+            skc = cmds.skinCluster(data.influences.tolist(), mesh, toSelectedBones=True, name=f"{mesh}_skc")[0]
             cmds.dgdirty(allPlugs=True)
 
-            skinClusterIo.deserialize(
-                skin_cluster=skc,
-                shape=cmds.listRelatives(mesh, c=True, s=True)[0],
-                data=data
-            )
+            maya_io.set_weights(skc, data.weights)

@@ -26,22 +26,22 @@ class ModuleStructure:
         is_module_parent = isinstance(parent, ModuleStructure)
 
         if not is_module_parent:
-            self.root = Node.create("transform", name=name, parent=parent)
-            # self.guides = Node.create("transform", name=name.replace(suffix="guides"), parent=self.root)
-            self.input = Node.create("transform", name=name.replace(suffix="input"), parent=self.root)
-            self.logic = Node.create("transform", name=name.replace(suffix="logic"), parent=self.root)
-            self.controls = Node.create("transform", name=name.replace(suffix="controls"), parent=self.root)
-            self.deform = Node.create("transform", name=name.replace(suffix="deform"), parent=self.root)
-            self.output = Node.create("transform", name=name.replace(suffix="output"), parent=self.root)
+            self.root = Node(name).create("transform", parent=parent)
+            # self.guides = Node(name.replace(suffix="guides")).create("transform", parent=self.root)
+            self.input = Node(name.replace(suffix="input")).create("transform", parent=self.root)
+            self.logic = Node(name.replace(suffix="logic")).create("transform", parent=self.root)
+            self.controls = Node(name.replace(suffix="controls")).create("transform", parent=self.root)
+            self.deform = Node(name.replace(suffix="deform")).create("transform", parent=self.root)
+            self.output = Node(name.replace(suffix="output")).create("transform", parent=self.root)
 
         else:
             self.root = parent.root
             # self.guides = parent.guides
-            self.input = Node.create("transform", name=name.replace(suffix="input"), parent=parent.input)
+            self.input = Node(name.replace(suffix="input")).create("transform", parent=parent.input)
             self.logic = parent.logic
             self.controls = parent.controls
             self.deform = parent.deform
-            self.output = Node.create("transform", name=name.replace(suffix="output"), parent=parent.output)
+            self.output = Node(name.replace(suffix="output")).create("transform", parent=parent.output)
 
         for group in [
             self.root,
